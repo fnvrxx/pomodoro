@@ -1,54 +1,51 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { Task, TimerSettings, UserProgress } from '@/app/types';
 
 /**
- * Custom hook for persisting state to localStorage
- * Automatically syncs state with localStorage and handles SSR
+ * Custom hook for persisting state to localStorage.
+ *
+ * SSR-safe: the initial render (server + first client paint) always uses
+ * `initialValue` so the HTML matches. After mount the stored value is
+ * loaded and applied, avoiding the Next.js hydration mismatch error.
  */
-export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((prev: T) => T)) => void] {
-  // State to store our value
+export function useLocalStorage<T>(
+  key: string,
+  initialValue: T,
+): [T, (value: T | ((prev: T) => T)) => void] {
   const [storedValue, setStoredValue] = useState<T>(initialValue);
-  const [, setIsInitialized] = useState(false);
 
-  // Initialize from localStorage on mount (client-side only)
+  // After mount, hydrate from localStorage (client-only)
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
     try {
       const item = window.localStorage.getItem(key);
-      if (item) {
-        const parsed = JSON.parse(item);
-        setStoredValue(parsed);
+      if (item !== null) {
+        setStoredValue(JSON.parse(item));
       }
     } catch (error) {
-      console.warn(`Error reading localStorage key "${key}":`, error);
+      console.warn(`useLocalStorage: error reading "${key}"`, error);
     }
-    setIsInitialized(true);
   }, [key]);
 
-  // Return a wrapped version of useState's setter function that
-  // persists the new value to localStorage
-  const setValue = useCallback((value: T | ((prev: T) => T)) => {
-    try {
-      // Allow value to be a function so we have same API as useState
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-
-      // Save state
-      setStoredValue(valueToStore);
-
-      // Save to localStorage
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+  const setValue = useCallback(
+    (value: T | ((prev: T) => T)) => {
+      try {
+        setStoredValue(prev => {
+          const next = value instanceof Function ? value(prev) : value;
+          window.localStorage.setItem(key, JSON.stringify(next));
+          return next;
+        });
+      } catch (error) {
+        console.warn(`useLocalStorage: error writing "${key}"`, error);
       }
-    } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error);
-    }
-  }, [key, storedValue]);
+    },
+    [key],
+  );
 
   return [storedValue, setValue];
 }
 
 /**
- * Hook for managing the entire app state with localStorage persistence
+ * Aggregates all persisted app state in one place.
  */
 export function useAppPersistence() {
   const [tasks, setTasks] = useLocalStorage<Task[]>('pomodoro-tasks', []);
@@ -65,19 +62,10 @@ export function useAppPersistence() {
     lastActiveDate: null,
     dailyStats: [],
   });
-  const [activeTaskId, setActiveTaskId] = useLocalStorage<string | null>('pomodoro-active-task', null);
+  const [activeTaskId, setActiveTaskId] = useLocalStorage<string | null>(
+    'pomodoro-active-task',
+    null,
+  );
 
-  return {
-    tasks,
-    setTasks,
-    settings,
-    setSettings,
-    progress,
-    setProgress,
-    activeTaskId,
-    setActiveTaskId,
-  };
+  return { tasks, setTasks, settings, setSettings, progress, setProgress, activeTaskId, setActiveTaskId };
 }
-
-// Import types
-import type { Task, TimerSettings, UserProgress } from '@/app/types';

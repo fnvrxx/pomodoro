@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Target } from 'lucide-react';
 import { getWeekStart } from '@/app/hooks/useWeeklyProgress';
@@ -13,9 +14,9 @@ interface WeeklyProgressBarProps {
  * Displays a visual progress bar showing how many tasks were completed
  * in the current week. Automatically resets when a new week starts.
  */
-export function WeeklyProgressBar({ 
-  completedCount, 
-  targetCount = 10 // Default target: 10 tasks per week
+export const WeeklyProgressBar = memo(function WeeklyProgressBar({
+  completedCount,
+  targetCount = 10,
 }: WeeklyProgressBarProps) {
   const percentage = Math.min((completedCount / targetCount) * 100, 100);
   
@@ -74,24 +75,8 @@ export function WeeklyProgressBar({
           className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#6B9B7A] to-[#8AB89A] rounded-full"
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
-          transition={{ 
-            duration: 0.6, 
-            ease: [0.22, 1, 0.36, 1],
-            delay: 0.1 
-          }}
-        >
-          {/* Shimmer effect */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-            animate={{ x: ['-100%', '100%'] }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity, 
-              ease: 'linear',
-              repeatDelay: 1 
-            }}
-          />
-        </motion.div>
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+        />
 
         {/* Milestone markers */}
         {[25, 50, 75].map((milestone) => (
@@ -117,25 +102,16 @@ export function WeeklyProgressBar({
         </span>
       </div>
 
-      {/* Celebration animation when goal reached */}
+      {/* Celebration when goal reached */}
       {percentage === 100 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mt-2 text-center"
+          className="mt-2 text-center text-lg"
         >
-          <motion.span
-            animate={{ 
-              scale: [1, 1.1, 1],
-              rotate: [0, 5, -5, 0]
-            }}
-            transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-            className="inline-block text-lg"
-          >
-            🎉
-          </motion.span>
+          🎉
         </motion.div>
       )}
     </motion.div>
   );
-}
+});

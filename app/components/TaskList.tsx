@@ -1,16 +1,16 @@
-import { useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, MoreVertical, Check, Trash2, X } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
+import { useMemo, memo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus, MoreVertical, Check, Trash2, X } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu';
-import { TaskCompletionProgress } from './TaskCompletionProgress';
-import { MotivationalQuote } from './MotivationalQuote';
-import type { Task } from '@/app/types';
+} from "@/app/components/ui/dropdown-menu";
+import { TaskCompletionProgress } from "./TaskCompletionProgress";
+import { MotivationalQuote } from "./MotivationalQuote";
+import type { Task } from "@/app/types";
 
 interface TaskListProps {
   tasks: Task[];
@@ -24,6 +24,140 @@ interface TaskListProps {
   onSelectTask: (taskId: string | null) => void;
 }
 
+interface TaskItemProps {
+  task: Task;
+  isActive: boolean;
+  onSelect: (taskId: string | null) => void;
+  onToggleComplete: (taskId: string) => void;
+  onEditTask: (task: Task) => void;
+  onDeleteTask: (taskId: string) => void;
+}
+
+// Memoized task item — prevents re-render when other tasks change
+const TaskItem = memo(function TaskItem({
+  task,
+  isActive,
+  onSelect,
+  onToggleComplete,
+  onEditTask,
+  onDeleteTask,
+}: TaskItemProps) {
+  return (
+    <motion.div
+      key={task.id}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20, scale: 0.9 }}
+      transition={{ duration: 0.2 }}
+      onClick={() => onSelect(isActive ? null : task.id)}
+      className={`
+        group flex items-center justify-between p-3 rounded-xl cursor-pointer
+        transition-colors duration-150
+        ${
+          task.completed
+            ? "bg-[#D4CFC6] opacity-60"
+            : isActive
+              ? "bg-[#6B9B7A] text-white shadow-md"
+              : "bg-[#D4CFC6] hover:bg-[#C9C4BB] hover:shadow-sm"
+        }
+      `}
+    >
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        {/* Checkbox */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleComplete(task.id);
+          }}
+          className={`
+            w-6 h-6 rounded-lg flex items-center justify-center transition-colors duration-150 flex-shrink-0
+            ${
+              task.completed
+                ? "bg-[#6B7B6B] text-white"
+                : isActive
+                  ? "bg-white/20 text-white border-2 border-white/50 hover:bg-white/30"
+                  : "bg-white border-2 border-[#6B7B6B] text-transparent hover:border-[#5A6A5A]"
+            }
+          `}
+        >
+          {task.completed && <Check className="w-3.5 h-3.5" />}
+        </button>
+
+        {/* Task Title */}
+        <div className="flex-1 min-w-0">
+          <span
+            className={`font-medium truncate block ${task.completed ? "line-through opacity-60" : ""}`}
+          >
+            {task.title}
+          </span>
+
+          {/* Pomodoro dots — only show if task has actual pomodoros */}
+          {!task.completed && task.actualPomodoros > 0 && (
+            <div className="flex gap-0.5 mt-1">
+              {[...Array(Math.min(task.actualPomodoros, 5))].map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-white/60" : "bg-[#6B9B7A]/60"}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right side: count + menu */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span
+          className={`
+          text-sm font-mono px-2 py-1 rounded-md
+          ${isActive ? "bg-white/20 text-white" : "bg-[#E8E4DC] text-[#6B7B6B]"}
+        `}
+        >
+          {task.actualPomodoros}/{task.estimatedPomodoros}
+        </span>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => e.stopPropagation()}
+              className={`
+                w-7 h-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-150
+                ${isActive ? "hover:bg-white/20 text-white" : "hover:bg-[#B8B3AA] text-[#6B7B6B]"}
+              `}
+            >
+              <MoreVertical className="w-3 h-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="min-w-[120px] bg-[#E8E4DC] border border-[#D4CFC6] shadow-lg rounded-xl p-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DropdownMenuItem
+              onClick={() => onEditTask(task)}
+              className="rounded-lg px-3 py-2 text-sm text-[#2D4A35] cursor-pointer
+                         hover:bg-[#6B9B7A] hover:text-white focus:bg-[#6B9B7A] focus:text-white
+                         transition-colors duration-150"
+            >
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onDeleteTask(task.id)}
+              className="rounded-lg px-3 py-2 text-sm text-red-500 cursor-pointer
+                         hover:bg-red-500 hover:text-white focus:bg-red-500 focus:text-white
+                         transition-colors duration-150"
+            >
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </motion.div>
+  );
+});
+
 export function TaskList({
   tasks,
   activeTaskId,
@@ -35,12 +169,17 @@ export function TaskList({
   onClearAll,
   onSelectTask,
 }: TaskListProps) {
-  const activeTask = tasks.find(t => t.id === activeTaskId);
-  const completedTasks = useMemo(() => tasks.filter(t => t.completed), [tasks]);
-  const incompleteTasks = useMemo(() => tasks.filter(t => !t.completed), [tasks]);
-  
-  // Check if all tasks are completed
-  const allTasksCompleted = tasks.length > 0 && tasks.every(t => t.completed);
+  const activeTask = tasks.find((t) => t.id === activeTaskId);
+  const completedTasks = useMemo(
+    () => tasks.filter((t) => t.completed),
+    [tasks],
+  );
+  const incompleteTasks = useMemo(
+    () => tasks.filter((t) => !t.completed),
+    [tasks],
+  );
+  const allTasksCompleted =
+    tasks.length > 0 && completedTasks.length === tasks.length;
 
   return (
     <div className="bg-[#E8E4DC] rounded-3xl p-5 sm:p-6 shadow-xl">
@@ -49,39 +188,37 @@ export function TaskList({
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-bold text-[#2D4A35]">Task</h2>
           {tasks.length > 0 && (
-            <motion.span
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-xs bg-[#6B9B7A]/20 text-[#6B9B7A] px-2 py-1 rounded-full font-medium"
-            >
+            <span className="text-xs bg-[#6B9B7A]/20 text-[#6B9B7A] px-2 py-1 rounded-full font-medium">
               {incompleteTasks.length} pending
-            </motion.span>
+            </span>
           )}
         </div>
-        
-        {/* Clear Menu Dropdown */}
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="w-8 h-8 rounded-full hover:bg-[#D4CFC6] text-[#6B7B6B] transition-all duration-200 hover:scale-110"
+              className="w-8 h-8 rounded-full hover:bg-[#D4CFC6] text-[#6B7B6B]"
             >
               <MoreVertical className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-[#6B7B6B] border-none text-white">
-            <DropdownMenuItem 
+          <DropdownMenuContent
+            align="end"
+            className="bg-[#6B7B6B] border-none text-white"
+          >
+            <DropdownMenuItem
               onClick={onClearFinished}
-              className="hover:bg-[#5A6A5A] cursor-pointer focus:bg-[#5A6A5A] transition-colors"
+              className="hover:bg-[#5A6A5A] cursor-pointer focus:bg-[#5A6A5A]"
               disabled={completedTasks.length === 0}
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Clear finished Task
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={onClearAll}
-              className="hover:bg-[#5A6A5A] cursor-pointer focus:bg-[#5A6A5A] transition-colors"
+              className="hover:bg-[#5A6A5A] cursor-pointer focus:bg-[#5A6A5A]"
               disabled={tasks.length === 0}
             >
               <X className="w-4 h-4 mr-2" />
@@ -95,20 +232,18 @@ export function TaskList({
       <AnimatePresence>
         {activeTask && (
           <motion.div
-            initial={{ opacity: 0, y: -10, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: 'auto' }}
-            exit={{ opacity: 0, y: -10, height: 0 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
             className="mb-4 p-3 bg-[#6B9B7A]/20 rounded-xl border border-[#6B9B7A]/30 overflow-hidden"
           >
             <div className="flex items-center gap-2 text-sm text-[#4A7A59]">
-              <motion.div 
-                className="w-2 h-2 rounded-full bg-[#6B9B7A]"
-                animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              />
+              <div className="w-2 h-2 rounded-full bg-[#6B9B7A]" />
               Currently focusing on:
             </div>
-            <div className="font-medium text-[#2D4A35] mt-1">{activeTask.title}</div>
+            <div className="font-medium text-[#2D4A35] mt-1">
+              {activeTask.title}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -122,192 +257,46 @@ export function TaskList({
               animate={{ opacity: 1 }}
               className="text-center py-8 text-[#8A8A8A]"
             >
-              <motion.div
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-4xl mb-3"
-              >
-                📝
-              </motion.div>
-              <p className="text-sm">No tasks yet</p>
-              <p className="text-xs mt-1">Add a task to get started</p>
+              <div className="text-sm">Tidak ada Task</div>
+              <p className="text-xs mt-1">Tambahkan task untuk memulai!</p>
             </motion.div>
           ) : (
-            tasks.map((task, index) => (
-              <motion.div
+            tasks.map((task) => (
+              <TaskItem
                 key={task.id}
-                layout
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20, scale: 0.9 }}
-                transition={{ 
-                  duration: 0.3, 
-                  delay: index * 0.05,
-                  layout: { duration: 0.2 }
-                }}
-                onClick={() => onSelectTask(task.id === activeTaskId ? null : task.id)}
-                className={`
-                  group flex items-center justify-between p-3 rounded-xl cursor-pointer
-                  transition-all duration-200
-                  ${task.completed 
-                    ? 'bg-[#D4CFC6] opacity-60' 
-                    : task.id === activeTaskId
-                      ? 'bg-[#6B9B7A] text-white shadow-md'
-                      : 'bg-[#D4CFC6] hover:bg-[#C9C4BB] hover:shadow-sm'
-                  }
-                `}
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {/* Animated Checkbox */}
-                  <motion.button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleComplete(task.id);
-                    }}
-                    whileTap={{ scale: 0.85 }}
-                    whileHover={{ scale: 1.1 }}
-                    className={`
-                      w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-200
-                      ${task.completed 
-                        ? 'bg-[#6B7B6B] text-white shadow-inner' 
-                        : task.id === activeTaskId
-                          ? 'bg-white/20 text-white border-2 border-white/50 hover:bg-white/30'
-                          : 'bg-white border-2 border-[#6B7B6B] text-transparent hover:border-[#5A6A5A] hover:shadow-sm'
-                      }
-                    `}
-                  >
-                    <motion.div
-                      initial={false}
-                      animate={{ 
-                        scale: task.completed ? [1.2, 1] : 1,
-                        rotate: task.completed ? [0, 10, 0] : 0
-                      }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                    </motion.div>
-                  </motion.button>
-
-                  {/* Task Title with strikethrough animation */}
-                  <div className="flex-1 min-w-0">
-                    <motion.span 
-                      className={`
-                        font-medium truncate block
-                        ${task.completed ? 'line-through' : ''}
-                      `}
-                      animate={{ 
-                        opacity: task.completed ? 0.6 : 1,
-                      }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {task.title}
-                    </motion.span>
-                    
-                    {/* Pomodoro progress mini indicator */}
-                    {!task.completed && task.actualPomodoros > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        className="flex items-center gap-1 mt-1"
-                      >
-                        <div className="flex gap-0.5">
-                          {[...Array(Math.min(task.actualPomodoros, 5))].map((_, i) => (
-                            <motion.div
-                              key={i}
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ delay: i * 0.1 }}
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                task.id === activeTaskId ? 'bg-white/60' : 'bg-[#6B9B7A]/60'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Pomodoro Count */}
-                <div className="flex items-center gap-2">
-                  <motion.span 
-                    className={`
-                      text-sm font-mono px-2 py-1 rounded-md
-                      ${task.id === activeTaskId 
-                        ? 'bg-white/20 text-white' 
-                        : 'bg-[#E8E4DC] text-[#6B7B6B]'
-                      }
-                    `}
-                    whileHover={{ scale: 1.05 }}
-                  >
-                    {task.actualPomodoros}/{task.estimatedPomodoros}
-                  </motion.span>
-
-                  {/* Actions Menu */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => e.stopPropagation()}
-                        className={`
-                          w-7 h-7 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200
-                          ${task.id === activeTaskId 
-                            ? 'hover:bg-white/20 text-white' 
-                            : 'hover:bg-[#B8B3AA] text-[#6B7B6B]'
-                          }
-                        `}
-                      >
-                        <MoreVertical className="w-3 h-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEditTask(task)}>
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => onDeleteTask(task.id)}
-                        className="text-red-600 focus:text-red-600"
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </motion.div>
+                task={task}
+                isActive={task.id === activeTaskId}
+                onSelect={onSelectTask}
+                onToggleComplete={onToggleComplete}
+                onEditTask={onEditTask}
+                onDeleteTask={onDeleteTask}
+              />
             ))
           )}
         </AnimatePresence>
       </div>
 
       {/* Add Task Button */}
-      <motion.button
+      <button
         onClick={onAddTask}
-        className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-[#B8B3AA] 
+        className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-[#B8B3AA]
                    text-[#8A8A8A] hover:text-[#6B7B6B] hover:border-[#6B7B6B] hover:bg-[#6B7B6B]/5
-                   transition-all duration-200 flex items-center justify-center gap-2"
-        whileHover={{ scale: 1.01, borderStyle: 'solid' }}
-        whileTap={{ scale: 0.99 }}
+                   transition-colors duration-150 flex items-center justify-center gap-2"
       >
-        <motion.div
-          animate={{ rotate: [0, 90, 0] }}
-          transition={{ duration: 0.3, repeat: Infinity, repeatDelay: 5 }}
-        >
-          <Plus className="w-4 h-4" />
-        </motion.div>
-        <span className="font-medium">Add Task</span>
-      </motion.button>
+        <Plus className="w-4 h-4" />
+        <span className="font-medium">Tambahkan Task</span>
+      </button>
 
       {/* Task Completion Progress */}
       <AnimatePresence>
         {tasks.length > 0 && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <TaskCompletionProgress 
+            <TaskCompletionProgress
               completedCount={completedTasks.length}
               totalCount={tasks.length}
             />
@@ -315,7 +304,7 @@ export function TaskList({
         )}
       </AnimatePresence>
 
-      {/* Motivational Quote - shown when all tasks completed */}
+      {/* Motivational Quote */}
       <MotivationalQuote show={allTasksCompleted} />
     </div>
   );

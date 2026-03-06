@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { CheckCircle2, TrendingUp } from 'lucide-react';
+import { motion } from "framer-motion";
+import { TrendingUp } from "lucide-react";
 
 interface TaskCompletionProgressProps {
   completedCount: number;
@@ -8,25 +8,24 @@ interface TaskCompletionProgressProps {
 
 /**
  * Task Completion Progress Component
- * 
+ *
  * Displays an animated progress bar showing the percentage of completed tasks.
  * Updates smoothly when tasks are checked/unchecked.
  */
-export function TaskCompletionProgress({ 
-  completedCount, 
-  totalCount 
+export function TaskCompletionProgress({
+  completedCount,
+  totalCount,
 }: TaskCompletionProgressProps) {
   // Calculate percentage
-  const percentage = totalCount > 0 
-    ? Math.round((completedCount / totalCount) * 100) 
-    : 0;
+  const percentage =
+    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   // Determine color based on progress
   const getProgressColor = () => {
-    if (percentage === 0) return 'bg-[#D4CFC6]';
-    if (percentage < 30) return 'bg-[#F4A261]';
-    if (percentage < 70) return 'bg-[#6B9B7A]';
-    return 'bg-gradient-to-r from-[#6B9B7A] to-[#4A8A5A]';
+    if (percentage === 0) return "bg-[#D4CFC6]";
+    if (percentage < 30) return "bg-[#F4A261]";
+    if (percentage < 70) return "bg-[#6B9B7A]";
+    return "bg-gradient-to-r from-[#6B9B7A] to-[#4A8A5A]";
   };
 
   return (
@@ -42,18 +41,22 @@ export function TaskCompletionProgress({
           <div className="w-8 h-8 rounded-full bg-[#6B9B7A]/20 flex items-center justify-center">
             <TrendingUp className="w-4 h-4 text-[#6B9B7A]" />
           </div>
-          <span className="text-sm font-bold text-[#2D4A35]">Task Progress</span>
+          <span className="text-sm font-bold text-[#2D4A35]">
+            Task Progress
+          </span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-[#8A8A8A]">
-            <span className="font-bold text-[#6B9B7A]">{completedCount}</span>
-            {' '}of{' '}
-            <span className="font-bold text-[#2D4A35]">{totalCount}</span>
+            <span className="font-bold text-[#6B9B7A]">{completedCount}</span>{" "}
+            of <span className="font-bold text-[#2D4A35]">{totalCount}</span>
           </span>
           <motion.span
             key={percentage}
-            initial={{ scale: 1.2, color: '#F4A261' }}
-            animate={{ scale: 1, color: percentage === 100 ? '#6B9B7A' : '#2D4A35' }}
+            initial={{ scale: 1.2, color: "#F4A261" }}
+            animate={{
+              scale: 1,
+              color: percentage === 100 ? "#6B9B7A" : "#2D4A35",
+            }}
             className="text-lg font-bold min-w-[3rem] text-right"
           >
             {percentage}%
@@ -64,38 +67,39 @@ export function TaskCompletionProgress({
       {/* Progress Bar */}
       <div className="relative h-4 bg-[#D4CFC6] rounded-full overflow-hidden">
         {/* Background pattern */}
-        <div 
+        <div
           className="absolute inset-0 opacity-30"
           style={{
-            backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 20px)',
+            backgroundImage:
+              "repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 20px)",
           }}
         />
-        
+
         {/* Animated Progress Fill */}
         <motion.div
           className={`absolute inset-y-0 left-0 rounded-full ${getProgressColor()}`}
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
-          transition={{ 
-            duration: 0.5, 
-            ease: [0.22, 1, 0.36, 1]
+          transition={{
+            duration: 0.5,
+            ease: [0.22, 1, 0.36, 1],
           }}
         >
           {/* Glow effect at the edge */}
           <div className="absolute right-0 top-0 bottom-0 w-2 bg-gradient-to-l from-white/40 to-transparent" />
-          
+
           {/* Subtle pulse animation when complete */}
           {percentage === 100 && (
             <motion.div
               className="absolute inset-0 bg-white/30 rounded-full"
-              animate={{ 
+              animate={{
                 opacity: [0, 0.5, 0],
-                scale: [1, 1.05, 1]
+                scale: [1, 1.05, 1],
               }}
-              transition={{ 
-                duration: 1.5, 
+              transition={{
+                duration: 1.5,
                 repeat: Infinity,
-                ease: 'easeInOut'
+                ease: "easeInOut",
               }}
             />
           )}
@@ -112,29 +116,37 @@ export function TaskCompletionProgress({
       </div>
 
       {/* Status message */}
-      <motion.div 
+      <motion.div
         className="mt-2 text-center"
         key={percentage}
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <span className={`
+        <span
+          className={`
           text-xs font-medium
-          ${percentage === 0 ? 'text-[#8A8A8A]' : ''}
-          ${percentage > 0 && percentage < 50 ? 'text-[#F4A261]' : ''}
-          ${percentage >= 50 && percentage < 100 ? 'text-[#6B9B7A]' : ''}
-          ${percentage === 100 ? 'text-[#4A8A5A]' : ''}
-        `}>
+          ${percentage === 0 ? "text-[#8A8A8A]" : ""}
+          ${percentage > 0 && percentage < 50 ? "text-[#F4A261]" : ""}
+          ${percentage >= 50 && percentage < 100 ? "text-[#6B9B7A]" : ""}
+          ${percentage === 100 ? "text-[#4A8A5A]" : ""}
+        `}
+        >
           {percentage === 0 && "Start completing tasks to see progress"}
-          {percentage > 0 && percentage < 25 && "Good start! Keep going!"}
-          {percentage >= 25 && percentage < 50 && "You're making progress!"}
-          {percentage >= 50 && percentage < 75 && "More than halfway there!"}
-          {percentage >= 75 && percentage < 100 && "Almost done!"}
+          {percentage > 0 &&
+            percentage < 25 &&
+            "Awalan yang bagus, yuk pertahankan!"}
+          {percentage >= 25 &&
+            percentage < 50 &&
+            "Hey,kamu sudah seperempat jalan! Nanggung banget! Yuk Teruskan!"}
+          {percentage >= 50 && percentage < 75 && "Setengah jalan! Kamu hebat!"}
+          {percentage >= 75 &&
+            percentage < 100 &&
+            "Hampir selesai! Semangat terus!"}
           {percentage === 100 && (
             <span className="flex items-center justify-center gap-1">
-              <CheckCircle2 className="w-4 h-4" />
-              All tasks completed! Amazing work!
+              Yey! kamu sudah menyelesaikan semua tugas hari ini! Istirahat
+              sejenak atau buat tugas baru!
             </span>
           )}
         </span>

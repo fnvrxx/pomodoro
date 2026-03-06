@@ -113,9 +113,9 @@ html {
   transform: scale(0.96);
 }
 
-/* Modal backdrop blur */
+/* Modal backdrop — no blur to avoid GPU compositing cost */
 .modal-backdrop {
-  backdrop-filter: blur(4px);
+  /* backdrop-filter: blur(4px); removed — expensive GPU operation */
 }
 
 /* Progress ring animation */
@@ -192,11 +192,9 @@ textarea:focus {
   -webkit-user-select: none;
 }
 
-/* Smooth transitions for all interactive elements */
-button,
-input,
-.transition-all {
-  transition-property: all;
+/* Smooth transitions for interactive elements — avoid 'all' which is expensive */
+button {
+  transition-property: color, background-color, opacity, transform, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 200ms;
+  transition-duration: 150ms;
 }

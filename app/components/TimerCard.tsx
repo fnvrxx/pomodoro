@@ -1,7 +1,7 @@
-import { motion } from 'framer-motion';
-import { Play, Pause, RotateCcw, SkipForward } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
-import type { TimerMode, TimerSettings } from '@/app/types';
+import { motion, AnimatePresence } from "framer-motion";
+import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import type { TimerMode, TimerSettings } from "@/app/types";
 
 interface TimerCardProps {
   timer: {
@@ -20,205 +20,205 @@ interface TimerCardProps {
   settings: TimerSettings;
 }
 
-export function TimerCard({ timer, settings }: TimerCardProps) {
-  const isFocus = timer.mode === 'focus';
-  const isBreak = timer.mode === 'break';
-  const isLongBreak = timer.mode === 'longBreak';
+const RADIUS = 50 - 5 / 2; // SVG size is 110, stroke width is 5, so radius is (110/2) - (5/2)
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-  // Calculate sessions until long break
-  const sessionsUntilLongBreak = settings.longBreakInterval - (timer.completedSessions % settings.longBreakInterval);
+export function TimerCard({ timer, settings }: TimerCardProps) {
+  const isFocus = timer.mode === "focus";
+  const isLongBreak = timer.mode === "longBreak";
+
+  const sessionsUntilLongBreak =
+    settings.longBreakInterval -
+    (timer.completedSessions % settings.longBreakInterval);
+
+  const modeLabel = isFocus ? "Focus" : isLongBreak ? "Long Break" : "Break";
 
   return (
-    <div className="bg-[#6B9B7A] rounded-3xl p-6 sm:p-8 shadow-xl">
+    <div className="bg-[#6B9B7A] rounded-3xl px-4 pt-3 pb-2 shadow-xl">
       {/* Mode Tabs */}
-      <div className="flex justify-center gap-4 mb-6">
-        <motion.button
-          onClick={() => timer.switchMode('focus')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-            isFocus 
-              ? 'bg-[#E8E4DC] text-[#6B9B7A]' 
-              : 'bg-transparent text-[#3D5A45] hover:bg-[#5A8A69]'
-          }`}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <span className="tracking-widest">Focus</span>
-        </motion.button>
-        <motion.button
-          onClick={() => timer.switchMode('break')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-            isBreak 
-              ? 'bg-[#E8E4DC] text-[#6B9B7A]' 
-              : 'bg-transparent text-[#3D5A45] hover:bg-[#5A8A69]'
-          }`}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <span className="tracking-widest">Break</span>
-        </motion.button>
+      <div className="flex justify-center gap-2 mb-4">
+        {(["focus", "break"] as TimerMode[]).map((m) => (
+          <motion.button
+            key={m}
+            onClick={() => timer.switchMode(m)}
+            className={`px-5 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+              timer.mode === m
+                ? "bg-[#E8E4DC] text-[#6B9B7A]"
+                : "text-[#3D5A45] hover:bg-[#5A8A69]"
+            }`}
+            whileTap={{ scale: 0.95 }}
+          >
+            <span className="tracking-widest capitalize">{m}</span>
+          </motion.button>
+        ))}
       </div>
 
-      {/* Timer Display */}
-      <div className="relative flex justify-center items-center mb-6">
-        {/* Progress Ring (SVG) */}
-        <svg className="absolute w-48 h-48 sm:w-56 sm:h-56" viewBox="0 0 100 100">
-          {/* Background circle */}
+      {/* Timer Ring */}
+      <div className="relative flex justify-center items-center mb-3">
+        <svg className="w-52 h-52 sm:w-56 sm:h-56" viewBox="0 0 110 110">
+          {/* Track */}
           <circle
-            cx="50"
-            cy="50"
-            r="45"
+            cx="55"
+            cy="55"
+            r={RADIUS}
             fill="none"
-            stroke="rgba(255, 255, 255, 0.1)"
-            strokeWidth="3"
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth="5"
           />
-          {/* Progress circle */}
+          {/* Progress arc */}
           <motion.circle
-            cx="50"
-            cy="50"
-            r="45"
+            cx="55"
+            cy="55"
+            r={RADIUS}
             fill="none"
-            stroke="rgba(255, 255, 255, 0.3)"
-            strokeWidth="3"
+            stroke={
+              timer.isRunning
+                ? "rgba(255,255,255,0.6)"
+                : "rgba(255,255,255,0.28)"
+            }
+            strokeWidth="5"
             strokeLinecap="round"
-            strokeDasharray={`${2 * Math.PI * 45}`}
-            initial={{ strokeDashoffset: `${2 * Math.PI * 45}` }}
-            animate={{ 
-              strokeDashoffset: `${2 * Math.PI * 45 * (1 - timer.progress / 100)}` 
+            strokeDasharray={CIRCUMFERENCE}
+            animate={{
+              strokeDashoffset: CIRCUMFERENCE * (1 - timer.progress / 100),
             }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            transform="rotate(-90 50 50)"
+            transition={
+              timer.isRunning
+                ? { duration: 0.6, ease: "easeOut" }
+                : { duration: 0 }
+            }
+            transform="rotate(-90 55 55)"
           />
         </svg>
 
-        {/* Time Display */}
-        <motion.div 
-          className="text-6xl sm:text-7xl font-bold text-[#2D4A35] timer-digit z-10"
-          key={timer.formattedTime}
-          initial={{ scale: 0.95, opacity: 0.8 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.2 }}
-        >
-          {timer.formattedTime}
-        </motion.div>
+        {/* Center content */}
+        <div className="absolute flex flex-col items-center gap-0.5">
+          <motion.span
+            className="text-6xl sm:text-7xl font-bold text-[#2D4A35] tabular-nums leading-none"
+            key={timer.formattedTime}
+            initial={{ opacity: 0.7 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.1 }}
+          >
+            {timer.formattedTime}
+          </motion.span>
+          <span className="text-[11px] text-[#3D5A45] tracking-[0.2em] uppercase font-semibold">
+            {modeLabel}
+          </span>
+        </div>
       </div>
 
-      {/* Session Indicator */}
-      {isFocus && (
-        <motion.div 
-          className="text-center mb-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <span className="text-xs text-[#3D5A45] bg-[#5A8A69]/30 px-3 py-1 rounded-full">
-            {sessionsUntilLongBreak} session{sessionsUntilLongBreak !== 1 ? 's' : ''} until long break
-          </span>
-        </motion.div>
-      )}
+      {/* Sub-info row */}
+      <div className="flex justify-center mb-4 h-6">
+        <AnimatePresence mode="wait">
+          {isFocus && (
+            <motion.span
+              key="focus-sub"
+              initial={{ opacity: 0, y: 3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -3 }}
+              transition={{ duration: 0.15 }}
+              className="text-xs text-[#3D5A45] bg-[#5A8A69]/30 px-3 py-1 rounded-full"
+            >
+              {sessionsUntilLongBreak} session
+              {sessionsUntilLongBreak !== 1 ? "s" : ""} until long break
+            </motion.span>
+          )}
+          {isLongBreak && (
+            <motion.span
+              key="lb-sub"
+              initial={{ opacity: 0, y: 3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -3 }}
+              transition={{ duration: 0.15 }}
+              className="text-xs font-medium text-[#E8E4DC] bg-[#F4A261] px-4 py-1 rounded-full"
+            >
+              Long Break ☕
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* Mode Indicator */}
-      {isLongBreak && (
-        <motion.div 
-          className="text-center mb-4"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <span className="text-sm font-medium text-[#E8E4DC] bg-[#F4A261] px-4 py-1 rounded-full">
-            Long Break ☕
-          </span>
-        </motion.div>
-      )}
-
-      {/* Control Buttons */}
-      <div className="flex justify-center items-center gap-3">
-        {/* Reset Button */}
-        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+      {/* Controls */}
+      <div className="flex justify-center items-center gap-4">
+        <motion.div whileTap={{ scale: 0.88 }}>
           <Button
             variant="ghost"
             size="icon"
             onClick={timer.reset}
-            className="w-10 h-10 rounded-full bg-[#5A8A69] hover:bg-[#4A7A59] text-[#E8E4DC] transition-all duration-200"
+            className="w-10 h-10 rounded-full bg-[#5A8A69] hover:bg-[#4A7A59] text-[#E8E4DC]"
           >
             <RotateCcw className="w-4 h-4" />
           </Button>
         </motion.div>
 
-        {/* Start/Pause Button */}
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <motion.div whileTap={{ scale: 0.95 }}>
           <Button
             onClick={timer.isRunning ? timer.pause : timer.start}
-            className={`px-8 py-6 rounded-xl font-bold text-lg tracking-widest transition-all duration-300 ${
-              timer.isRunning
-                ? 'bg-[#E8E4DC] text-[#6B9B7A] hover:bg-[#DDD8CE]'
-                : 'bg-[#F4A261] text-[#2D4A35] hover:bg-[#E89150]'
-            }`}
+            className={`
+              w-36 h-12 rounded-2xl font-bold text-base tracking-widest
+              transition-all duration-200
+              ${
+                timer.isRunning
+                  ? "bg-[#E8E4DC]/90 hover:bg-[#E8E4DC] text-[#6B9B7A]"
+                  : "bg-[#F4A261] hover:bg-[#E8924F] text-[#2D4A35] opacity-90 hover:opacity-100"
+              }
+            `}
           >
-            <motion.div
-              className="flex items-center gap-2"
-              initial={false}
-              animate={{ scale: timer.isRunning ? 1 : [1, 1.02, 1] }}
-              transition={{ 
-                scale: { 
-                  repeat: timer.isRunning ? 0 : Infinity, 
-                  duration: 2 
-                } 
-              }}
-            >
+            <div className="flex items-center justify-center gap-2">
               {timer.isRunning ? (
                 <>
-                  <Pause className="w-5 h-5" />
+                  <Pause className="w-4 h-4" />
                   PAUSE
                 </>
               ) : (
                 <>
-                  <Play className="w-5 h-5" />
+                  <Play className="w-4 h-4" />
                   START
                 </>
               )}
-            </motion.div>
+            </div>
           </Button>
         </motion.div>
 
-        {/* Skip Button */}
-        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+        <motion.div whileTap={{ scale: 0.88 }}>
           <Button
             variant="ghost"
             size="icon"
             onClick={timer.skip}
-            className="w-10 h-10 rounded-full bg-[#5A8A69] hover:bg-[#4A7A59] text-[#E8E4DC] transition-all duration-200"
+            className="w-10 h-10 rounded-full bg-[#5A8A69] hover:bg-[#4A7A59] text-[#E8E4DC]"
           >
             <SkipForward className="w-4 h-4" />
           </Button>
         </motion.div>
       </div>
 
-      {/* Running Indicator */}
-      {timer.isRunning && (
-        <motion.div
-          className="flex justify-center mt-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <div className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="w-2 h-2 rounded-full bg-[#E8E4DC]"
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.5, 1, 0.5],
-                }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                }}
-              />
-            ))}
-          </div>
-        </motion.div>
-      )}
+      {/* Running dots */}
+      <div className="h-6 flex justify-center items-center mt-3">
+        <AnimatePresence>
+          {timer.isRunning && (
+            <motion.div
+              className="flex gap-1.5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-[#E8E4DC]/60"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{
+                    duration: 1.4,
+                    repeat: Infinity,
+                    delay: i * 0.25,
+                  }}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, ExternalLink } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
@@ -32,29 +32,23 @@ const PLAYLISTS = [
   },
 ];
 
-export function MusicPlayer() {
+export const MusicPlayer = memo(function MusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPlaylist, setCurrentPlaylist] = useState(PLAYLISTS[0]);
   const [isMuted, setIsMuted] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Handle play/pause by reloading iframe with appropriate parameters
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
-  };
+  const togglePlay = () => setIsPlaying(prev => !prev);
+  const toggleMute = () => setIsMuted(prev => !prev);
 
   const handlePlaylistChange = (playlist: typeof PLAYLISTS[0]) => {
     setCurrentPlaylist(playlist);
     setIsPlaying(true);
   };
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
-
-  // Build YouTube embed URL with parameters
+  // Build YouTube embed URL. The iframe uses `key` to force re-mount
+  // when play state or mute changes, since YouTube's iframe API doesn't
+  // respond to src-only updates once loaded.
   const getEmbedUrl = () => {
-    const baseUrl = `https://www.youtube.com/embed/${currentPlaylist.id}`;
     const params = new URLSearchParams({
       autoplay: isPlaying ? '1' : '0',
       mute: isMuted ? '1' : '0',
@@ -63,8 +57,11 @@ export function MusicPlayer() {
       rel: '0',
       playsinline: '1',
     });
-    return `${baseUrl}?${params.toString()}`;
+    return `https://www.youtube.com/embed/${currentPlaylist.id}?${params.toString()}`;
   };
+
+  // Key forces iframe re-mount when play state, mute, or playlist changes
+  const iframeKey = `${currentPlaylist.id}-${isPlaying}-${isMuted}`;
 
   return (
     <motion.div
@@ -110,10 +107,10 @@ export function MusicPlayer() {
         </div>
       </div>
 
-      {/* Hidden YouTube Player */}
+      {/* YouTube Player — key forces re-mount on state change */}
       <div className="relative w-full h-0 pb-[56.25%] rounded-xl overflow-hidden bg-[#D4CFC6]">
         <iframe
-          ref={iframeRef}
+          key={iframeKey}
           src={getEmbedUrl()}
           title="Music Player"
           className="absolute inset-0 w-full h-full"
@@ -156,4 +153,4 @@ export function MusicPlayer() {
       </a>
     </motion.div>
   );
-}
+});

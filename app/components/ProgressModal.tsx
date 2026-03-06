@@ -1,16 +1,17 @@
 import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, Flame } from 'lucide-react';
-import type { UserProgress, Task } from '@/app/types';
+import type { UserProgress, Task, TimerSettings } from '@/app/types';
 
 interface ProgressModalProps {
   isOpen: boolean;
   onClose: () => void;
   progress: UserProgress;
   tasks: Task[];
+  settings: TimerSettings;
 }
 
-export function ProgressModal({ isOpen, onClose, progress, tasks }: ProgressModalProps) {
+export function ProgressModal({ isOpen, onClose, progress, tasks, settings }: ProgressModalProps) {
   // Calculate stats
   const totalHours = Math.floor(progress.totalFocusTime / 60);
   const totalMinutes = progress.totalFocusTime % 60;
@@ -21,18 +22,18 @@ export function ProgressModal({ isOpen, onClose, progress, tasks }: ProgressModa
   const todayFocusTime = todayStat?.focusTime || 0;
   const todayPomodoros = todayStat?.pomodorosCompleted || 0;
 
-  // Calculate task breakdown
+  // Calculate task breakdown using actual focus duration from settings
   const taskBreakdown = useMemo(() => {
     return tasks
       .filter(t => t.actualPomodoros > 0)
       .map(t => ({
         name: t.title,
-        time: t.actualPomodoros * 25, // Assuming 25 min per pomodoro
+        time: t.actualPomodoros * settings.focusDuration,
         pomodoros: t.actualPomodoros,
       }))
       .sort((a, b) => b.time - a.time)
-      .slice(0, 5); // Top 5 tasks
-  }, [tasks]);
+      .slice(0, 5);
+  }, [tasks, settings.focusDuration]);
 
   // Format time as HH:MM
   const formatTime = (minutes: number) => {
