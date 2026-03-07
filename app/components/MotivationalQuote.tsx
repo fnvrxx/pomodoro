@@ -64,16 +64,12 @@ export function MotivationalQuote({ show }: MotivationalQuoteProps) {
                   left: `${15 + i * 15}%`,
                   top: '20%',
                 }}
-                animate={{
-                  y: [0, -30, 0],
-                  opacity: [0.3, 0.8, 0.3],
-                  scale: [1, 1.2, 1],
-                }}
+                initial={{ y: 0, opacity: 0.3, scale: 1 }}
+                animate={{ y: -20, opacity: 0.7, scale: 1.1 }}
                 transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  delay: i * 0.3,
-                  ease: 'easeInOut',
+                  duration: 0.6,
+                  delay: i * 0.1,
+                  ease: 'easeOut',
                 }}
               />
             ))}
@@ -85,8 +81,9 @@ export function MotivationalQuote({ show }: MotivationalQuoteProps) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <motion.div
+                  initial={{ rotate: 0 }}
                   animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 3 }}
+                  transition={{ duration: 0.5 }}
                 >
                   <Sparkles className="w-5 h-5 text-[#F4A261]" />
                 </motion.div>
@@ -142,17 +139,7 @@ export function MotivationalQuote({ show }: MotivationalQuoteProps) {
           </div>
 
           {/* Bottom gradient line */}
-          <motion.div
-            className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#F4A261] to-transparent"
-            animate={{ 
-              opacity: [0.5, 1, 0.5],
-            }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity,
-              ease: 'easeInOut'
-            }}
-          />
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#F4A261] to-transparent opacity-70" />
         </motion.div>
       )}
     </AnimatePresence>

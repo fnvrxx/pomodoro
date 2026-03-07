@@ -88,19 +88,13 @@ export function TaskCompletionProgress({
           {/* Glow effect at the edge */}
           <div className="absolute right-0 top-0 bottom-0 w-2 bg-gradient-to-l from-white/40 to-transparent" />
 
-          {/* Subtle pulse animation when complete */}
+          {/* Glow when complete */}
           {percentage === 100 && (
             <motion.div
-              className="absolute inset-0 bg-white/30 rounded-full"
-              animate={{
-                opacity: [0, 0.5, 0],
-                scale: [1, 1.05, 1],
-              }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              className="absolute inset-0 bg-white/20 rounded-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
             />
           )}
         </motion.div>

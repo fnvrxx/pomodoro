@@ -10,7 +10,13 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { TaskCompletionProgress } from "./TaskCompletionProgress";
 import { MotivationalQuote } from "./MotivationalQuote";
-import type { Task } from "@/app/types";
+import type { Task, TaskPriority } from "@/app/types";
+
+const PRIORITY_DOT: Record<TaskPriority, string> = {
+  low:    'bg-[#6B9B7A]',
+  medium: 'bg-[#F4A261]',
+  high:   'bg-red-400',
+};
 
 interface TaskListProps {
   tasks: Task[];
@@ -85,13 +91,25 @@ const TaskItem = memo(function TaskItem({
 
         {/* Task Title */}
         <div className="flex-1 min-w-0">
-          <span
-            className={`font-medium truncate block ${task.completed ? "line-through opacity-60" : ""}`}
-          >
-            {task.title}
-          </span>
-
-          {/* Pomodoro dots — only show if task has actual pomodoros */}
+          <div className="flex items-center gap-1.5">
+            {task.priority && (
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                isActive ? 'bg-white/70' : PRIORITY_DOT[task.priority]
+              }`} />
+            )}
+            <span
+              className={`font-medium truncate block ${task.completed ? "line-through opacity-60" : ""}`}
+            >
+              {task.title}
+            </span>
+          </div>
+          {/* Notes preview */}
+          {task.notes && !task.completed && (
+            <p className={`text-xs mt-0.5 truncate italic ${isActive ? "text-white/70" : "text-[#6B7B6B]"}`}>
+              {task.notes}
+            </p>
+          )}
+          {/* Pomodoro dots */}
           {!task.completed && task.actualPomodoros > 0 && (
             <div className="flex gap-0.5 mt-1">
               {[...Array(Math.min(task.actualPomodoros, 5))].map((_, i) => (

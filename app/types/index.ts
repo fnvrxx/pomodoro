@@ -5,14 +5,26 @@
 // Timer session types
 export type TimerMode = 'focus' | 'break' | 'longBreak';
 
+// Task priority
+export type TaskPriority = 'low' | 'medium' | 'high';
+
 // Task status
 export interface Task {
   id: string;
   title: string;
+  priority: TaskPriority;
+  notes: string;
   estimatedPomodoros: number;
   actualPomodoros: number;
   completed: boolean;
   createdAt: number;
+}
+
+// Custom YouTube playlist entry
+export interface CustomPlaylist {
+  id: string;       // YouTube video/playlist ID
+  name: string;
+  addedAt: number;
 }
 
 // Timer settings

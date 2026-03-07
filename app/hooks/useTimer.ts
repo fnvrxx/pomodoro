@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { TimerMode, TimerSettings } from "@/app/types";
+import { playRingRepeated } from "@/app/data/ringtones";
 
 interface TimerState {
   mode: TimerMode;
@@ -10,12 +11,9 @@ interface TimerState {
 
 function getDurationForMode(mode: TimerMode, settings: TimerSettings): number {
   switch (mode) {
-    case "focus":
-      return settings.focusDuration;
-    case "break":
-      return settings.breakDuration;
-    case "longBreak":
-      return settings.longBreakDuration;
+    case "focus": return settings.focusDuration;
+    case "break": return settings.breakDuration;
+    case "longBreak": return settings.longBreakDuration;
   }
 }
 
@@ -25,84 +23,47 @@ function getNextMode(
   settings: TimerSettings,
 ): TimerMode {
   if (currentMode === "focus") {
-    const nextSessionCount = completedSessions + 1;
-    return nextSessionCount % settings.longBreakInterval === 0
-      ? "longBreak"
-      : "break";
+    const next = completedSessions + 1;
+    return next % settings.longBreakInterval === 0 ? "longBreak" : "break";
   }
   return "focus";
 }
 
 function getModeLabel(mode: TimerMode): string {
   switch (mode) {
-    case "focus":
-      return "Sesi Fokus sudah selesai!!";
-    case "break":
-      return "Waktu istirahat sudah berakhir!";
-    case "longBreak":
-      return "Istirahat panjang sudah berakhir!";
+    case "focus": return "Sesi Fokus sudah selesai!!";
+    case "break": return "Waktu istirahat sudah berakhir!";
+    case "longBreak": return "Istirahat panjang sudah berakhir!";
   }
 }
 
 function getModeBody(mode: TimerMode): string {
   switch (mode) {
-    case "focus":
-      return "Kerja bagus! Waktunya rehat sejenak dulu,le";
-    case "break":
-      return "Siap untuk fokus lagi,le?";
-    case "longBreak":
-      return "Sudah terisi ulang? GASS LANJUT,le!";
+    case "focus": return "Kerja bagus! Waktunya rehat sejenak dulu,le";
+    case "break": return "Siap untuk fokus lagi,le?";
+    case "longBreak": return "Sudah terisi ulang? GASS LANJUT,le!";
   }
 }
 
-/** Play a pleasant multi-tone ring using Web Audio API */
-function playRing() {
-  if (typeof window === "undefined") return;
+function playRing(ringtoneId: string, repeat: number) {
   try {
-    const AudioCtx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    const ctx = new AudioCtx();
-
-    // Three-tone chime: C5 → E5 → G5
-    const tones = [523.25, 659.25, 783.99];
-    tones.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.type = "sine";
-      osc.frequency.value = freq;
-
-      const startAt = ctx.currentTime + i * 0.18;
-      gain.gain.setValueAtTime(0, startAt);
-      gain.gain.linearRampToValueAtTime(0.35, startAt + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.6);
-
-      osc.start(startAt);
-      osc.stop(startAt + 0.65);
-    });
+    playRingRepeated(ringtoneId, repeat);
   } catch (err) {
     console.warn("Could not play ring:", err);
   }
 }
 
-/** Request browser notification permission on first call, then show notification */
 async function showNotification(mode: TimerMode) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission === "denied") return;
-
   if (Notification.permission === "default") {
     await Notification.requestPermission();
   }
-
   if (Notification.permission === "granted") {
     new Notification(getModeLabel(mode), {
       body: getModeBody(mode),
       icon: "/favicon.ico",
-      silent: true, // we handle sound ourselves
+      silent: true,
     });
   }
 }
@@ -112,6 +73,8 @@ export function useTimer(
   _tasks: unknown[],
   _activeTaskId: string | null,
   onComplete: (mode: TimerMode, duration: number) => void,
+  ringtoneId: string,
+  ringtoneRepeat: number,
 ) {
   const [state, setState] = useState<TimerState>({
     mode: "focus",
@@ -126,21 +89,22 @@ export function useTimer(
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  // Ref to prevent multiple onComplete calls due to race condition
-  const hasCompletedRef = useRef(false);
+  const ringtoneIdRef = useRef(ringtoneId);
+  ringtoneIdRef.current = ringtoneId;
+
+  const ringtoneRepeatRef = useRef(ringtoneRepeat);
+  ringtoneRepeatRef.current = ringtoneRepeat;
+
+  const completionFiredRef = useRef(false);
 
   // Request notification permission once on mount
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      Notification.permission === "default"
-    ) {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
   }, []);
 
-  // Reset timer when settings durations actually change and timer is paused
+  // Reset timer when settings durations change (only while paused)
   const prevDurationsRef = useRef({
     focusDuration: settings.focusDuration,
     breakDuration: settings.breakDuration,
@@ -161,48 +125,49 @@ export function useTimer(
       longBreakDuration: settings.longBreakDuration,
     };
 
-    setState((prev) => {
+    setState(prev => {
       if (prev.isRunning) return prev;
-      return {
-        ...prev,
-        timeRemaining: getDurationForMode(prev.mode, settings) * 60,
-      };
+      return { ...prev, timeRemaining: getDurationForMode(prev.mode, settings) * 60 };
     });
-  }, [
-    settings.focusDuration,
-    settings.breakDuration,
-    settings.longBreakDuration,
-    settings,
-  ]);
+  }, [settings.focusDuration, settings.breakDuration, settings.longBreakDuration, settings]);
 
-  // Countdown — reads settings via ref, no restarts when settings change
+  // ── Core countdown ──────────────────────────────────────────────────────────
+  // Fix: decrement first, then check if we hit 0.
+  // This ensures 00:01 → 00:00 triggers completion cleanly in one tick,
+  // with no lingering state at 0 that requires a hasCompleted guard.
   useEffect(() => {
     if (!state.isRunning) return;
 
     const interval = setInterval(() => {
-      setState((prev) => {
-        if (prev.timeRemaining > 0) {
-          return { ...prev, timeRemaining: prev.timeRemaining - 1 };
+      setState(prev => {
+        if (!prev.isRunning) return prev;
+
+        const next = prev.timeRemaining - 1;
+
+        if (next > 0) {
+          // Still counting down
+          return { ...prev, timeRemaining: next };
         }
 
-        // Prevent multiple onComplete calls
-        if (hasCompletedRef.current) {
-          return prev;
-        }
-
+        // Reached 0 — complete this session
         const s = settingsRef.current;
         const duration = getDurationForMode(prev.mode, s);
+        const completedMode = prev.mode;
 
-        onCompleteRef.current(prev.mode, duration);
-        playRing();
-        showNotification(prev.mode);
-        hasCompletedRef.current = true;
+        // Guard against StrictMode double-invoke of setState updater
+        if (!completionFiredRef.current) {
+          completionFiredRef.current = true;
+          setTimeout(() => {
+            onCompleteRef.current(completedMode, duration);
+            playRing(ringtoneIdRef.current, ringtoneRepeatRef.current);
+            showNotification(completedMode);
+            completionFiredRef.current = false;
+          }, 0);
+        }
 
         const nextMode = getNextMode(prev.mode, prev.completedSessions, s);
         const nextCompletedSessions =
-          prev.mode === "focus"
-            ? prev.completedSessions + 1
-            : prev.completedSessions;
+          prev.mode === "focus" ? prev.completedSessions + 1 : prev.completedSessions;
 
         return {
           mode: nextMode,
@@ -217,17 +182,15 @@ export function useTimer(
   }, [state.isRunning]);
 
   const start = useCallback(() => {
-    hasCompletedRef.current = false;
-    setState((prev) => ({ ...prev, isRunning: true }));
+    setState(prev => ({ ...prev, isRunning: true }));
   }, []);
-  const pause = useCallback(
-    () => setState((prev) => ({ ...prev, isRunning: false })),
-    [],
-  );
+
+  const pause = useCallback(() => {
+    setState(prev => ({ ...prev, isRunning: false }));
+  }, []);
 
   const reset = useCallback(() => {
-    hasCompletedRef.current = false;
-    setState((prev) => ({
+    setState(prev => ({
       ...prev,
       timeRemaining: getDurationForMode(prev.mode, settingsRef.current) * 60,
       isRunning: false,
@@ -235,8 +198,7 @@ export function useTimer(
   }, []);
 
   const switchMode = useCallback((mode: TimerMode) => {
-    hasCompletedRef.current = false;
-    setState((prev) => ({
+    setState(prev => ({
       ...prev,
       mode,
       timeRemaining: getDurationForMode(mode, settingsRef.current) * 60,
@@ -245,14 +207,11 @@ export function useTimer(
   }, []);
 
   const skip = useCallback(() => {
-    hasCompletedRef.current = false;
-    setState((prev) => {
+    setState(prev => {
       const s = settingsRef.current;
       const nextMode = getNextMode(prev.mode, prev.completedSessions, s);
       const nextCompletedSessions =
-        prev.mode === "focus"
-          ? prev.completedSessions + 1
-          : prev.completedSessions;
+        prev.mode === "focus" ? prev.completedSessions + 1 : prev.completedSessions;
       return {
         mode: nextMode,
         timeRemaining: getDurationForMode(nextMode, s) * 60,

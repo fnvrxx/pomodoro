@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock } from 'lucide-react';
+import { Clock, Bell, Play, Minus, Plus } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import type { TimerSettings } from '@/app/types';
+import { RINGTONES, getRingtoneById, playRingRepeated } from '@/app/data/ringtones';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   settings: TimerSettings;
   onSave: (settings: TimerSettings) => void;
+  ringtoneId: string;
+  onRingtoneChange: (id: string) => void;
+  ringtoneRepeat: number;
+  onRingtoneRepeatChange: (n: number) => void;
 }
 
-export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, settings, onSave, ringtoneId, onRingtoneChange, ringtoneRepeat, onRingtoneRepeatChange }: SettingsModalProps) {
   const [localSettings, setLocalSettings] = useState<TimerSettings>(settings);
 
   // Reset local settings when modal opens
@@ -136,10 +141,79 @@ export function SettingsModal({ isOpen, onClose, settings, onSave }: SettingsMod
                       max={60}
                       value={localSettings.longBreakDuration}
                       onChange={(e) => updateSetting('longBreakDuration', Math.max(1, Math.min(60, parseInt(e.target.value) || 15)))}
-                      className="bg-[#D4CFC6] border-none rounded-xl py-2 px-3 
+                      className="bg-[#D4CFC6] border-none rounded-xl py-2 px-3
                                text-[#2D4A35] text-center font-medium w-20
                                focus:ring-2 focus:ring-[#6B9B7A]/50"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="w-full h-px bg-[#D4CFC6] mb-6" />
+
+              {/* Ringtone Section */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Bell className="w-5 h-5 text-[#6B7B6B]" />
+                  <span className="text-sm font-medium text-[#6B7B6B] uppercase tracking-wider">Ringtone</span>
+                </div>
+                <div className="space-y-2">
+                  {RINGTONES.map((r) => (
+                    <div
+                      key={r.id}
+                      onClick={() => onRingtoneChange(r.id)}
+                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-colors duration-150 cursor-pointer
+                        ${ringtoneId === r.id
+                          ? 'bg-[#6B9B7A] text-white'
+                          : 'bg-[#D4CFC6] text-[#2D4A35] hover:bg-[#C9C4BB]'
+                        }`}
+                    >
+                      <span className="text-sm font-medium">{r.name}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); playRingRepeated(r.id, ringtoneRepeat); }}
+                        className={`p-1.5 rounded-full transition-colors duration-150
+                          ${ringtoneId === r.id
+                            ? 'bg-white/20 hover:bg-white/30 text-white'
+                            : 'bg-[#B8B3AA] hover:bg-[#A8A39A] text-[#5A5A5A]'
+                          }`}
+                        aria-label={`Preview ${r.name}`}
+                      >
+                        <Play className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Repeat count */}
+                <div className="mt-4 flex items-center justify-between px-1">
+                  <div>
+                    <span className="text-sm text-[#5A5A5A]">Repeat</span>
+                    <p className="text-xs text-[#8A8A8A] mt-0.5">
+                      {ringtoneRepeat === 1 ? 'Play once' : `Play ${ringtoneRepeat}× in a row`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onRingtoneRepeatChange(Math.max(1, ringtoneRepeat - 1))}
+                      disabled={ringtoneRepeat <= 1}
+                      className="w-8 h-8 rounded-full bg-[#D4CFC6] hover:bg-[#C9C4BB] disabled:opacity-40
+                                 flex items-center justify-center transition-colors duration-150"
+                    >
+                      <Minus className="w-3 h-3 text-[#2D4A35]" />
+                    </button>
+                    <span className="w-6 text-center font-bold text-[#2D4A35]">{ringtoneRepeat}</span>
+                    <button
+                      type="button"
+                      onClick={() => onRingtoneRepeatChange(Math.min(5, ringtoneRepeat + 1))}
+                      disabled={ringtoneRepeat >= 5}
+                      className="w-8 h-8 rounded-full bg-[#D4CFC6] hover:bg-[#C9C4BB] disabled:opacity-40
+                                 flex items-center justify-center transition-colors duration-150"
+                    >
+                      <Plus className="w-3 h-3 text-[#2D4A35]" />
+                    </button>
                   </div>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Task, TimerSettings, UserProgress } from '@/app/types';
+import type { Task, TimerSettings, UserProgress, CustomPlaylist } from '@/app/types';
 
 /**
  * Custom hook for persisting state to localStorage.
@@ -66,6 +66,26 @@ export function useAppPersistence() {
     'pomodoro-active-task',
     null,
   );
+  const [customPlaylists, setCustomPlaylists] = useLocalStorage<CustomPlaylist[]>(
+    'pomodoro-custom-playlists',
+    [],
+  );
+  const [ringtoneId, setRingtoneId] = useLocalStorage<string>(
+    'pomodoro-ringtone',
+    'chime',
+  );
+  const [ringtoneRepeat, setRingtoneRepeat] = useLocalStorage<number>(
+    'pomodoro-ringtone-repeat',
+    1,
+  );
 
-  return { tasks, setTasks, settings, setSettings, progress, setProgress, activeTaskId, setActiveTaskId };
+  return {
+    tasks, setTasks,
+    settings, setSettings,
+    progress, setProgress,
+    activeTaskId, setActiveTaskId,
+    customPlaylists, setCustomPlaylists,
+    ringtoneId, setRingtoneId,
+    ringtoneRepeat, setRingtoneRepeat,
+  };
 }
