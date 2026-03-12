@@ -20,7 +20,7 @@ interface TimerCardProps {
   settings: TimerSettings;
 }
 
-const RADIUS = 50 - 5 / 2; // SVG size is 110, stroke width is 5, so radius is (110/2) - (5/2)
+const RADIUS = 50 - 5 / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function TimerCard({ timer, settings }: TimerCardProps) {
@@ -34,18 +34,19 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
   const modeLabel = isFocus ? "Focus" : isLongBreak ? "Long Break" : "Break";
 
   return (
-    <div className="bg-[#6B9B7A] rounded-3xl px-4 pt-3 pb-2 shadow-xl">
+    <div className="rounded-3xl px-4 pt-3 pb-2 shadow-xl"
+         style={{ backgroundColor: "var(--pomo-timer-bg)" }}>
       {/* Mode Tabs */}
       <div className="flex justify-center gap-2 mb-4">
         {(["focus", "break"] as TimerMode[]).map((m) => (
           <motion.button
             key={m}
             onClick={() => timer.switchMode(m)}
-            className={`px-5 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
-              timer.mode === m
-                ? "bg-[#E8E4DC] text-[#6B9B7A]"
-                : "text-[#3D5A45] hover:bg-[#5A8A69]"
-            }`}
+            className="px-5 py-1.5 rounded-full text-sm font-medium transition-colors duration-200"
+            style={{
+              backgroundColor: timer.mode === m ? "var(--pomo-card)" : "transparent",
+              color: timer.mode === m ? "var(--pomo-timer-bg)" : "var(--pomo-timer-sub)",
+            }}
             whileTap={{ scale: 0.95 }}
           >
             <span className="tracking-widest capitalize">{m}</span>
@@ -56,7 +57,6 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
       {/* Timer Ring */}
       <div className="relative flex justify-center items-center mb-3">
         <svg className="w-52 h-52 sm:w-56 sm:h-56" viewBox="0 0 110 110">
-          {/* Track */}
           <circle
             cx="55"
             cy="55"
@@ -65,7 +65,6 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
             stroke="rgba(255,255,255,0.12)"
             strokeWidth="5"
           />
-          {/* Progress arc */}
           <motion.circle
             cx="55"
             cy="55"
@@ -91,10 +90,10 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
           />
         </svg>
 
-        {/* Center content */}
         <div className="absolute flex flex-col items-center gap-0.5">
           <motion.span
-            className="text-6xl sm:text-7xl font-bold text-[#2D4A35] tabular-nums leading-none"
+            className="text-6xl sm:text-7xl font-bold tabular-nums leading-none"
+            style={{ color: "var(--pomo-timer-text)" }}
             key={timer.formattedTime}
             initial={{ opacity: 0.7 }}
             animate={{ opacity: 1 }}
@@ -102,7 +101,8 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
           >
             {timer.formattedTime}
           </motion.span>
-          <span className="text-[11px] text-[#3D5A45] tracking-[0.2em] uppercase font-semibold">
+          <span className="text-[11px] tracking-[0.2em] uppercase font-semibold"
+                style={{ color: "var(--pomo-timer-sub)" }}>
             {modeLabel}
           </span>
         </div>
@@ -118,7 +118,11 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -3 }}
               transition={{ duration: 0.15 }}
-              className="text-xs text-[#3D5A45] bg-[#5A8A69]/30 px-3 py-1 rounded-full"
+              className="text-xs px-3 py-1 rounded-full"
+              style={{
+                color: "var(--pomo-timer-sub)",
+                backgroundColor: "rgba(255,255,255,0.15)",
+              }}
             >
               {sessionsUntilLongBreak} session
               {sessionsUntilLongBreak !== 1 ? "s" : ""} until long break
@@ -131,9 +135,13 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -3 }}
               transition={{ duration: 0.15 }}
-              className="text-xs font-medium text-[#E8E4DC] bg-[#F4A261] px-4 py-1 rounded-full"
+              className="text-xs font-medium px-4 py-1 rounded-full"
+              style={{
+                color: "var(--pomo-card)",
+                backgroundColor: "var(--pomo-accent)",
+              }}
             >
-              Long Break ☕
+              Long Break
             </motion.span>
           )}
         </AnimatePresence>
@@ -146,7 +154,11 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
             variant="ghost"
             size="icon"
             onClick={timer.reset}
-            className="w-10 h-10 rounded-full bg-[#5A8A69] hover:bg-[#4A7A59] text-[#E8E4DC]"
+            className="w-10 h-10 rounded-full"
+            style={{
+              backgroundColor: "var(--pomo-timer-btn)",
+              color: "var(--pomo-card)",
+            }}
           >
             <RotateCcw className="w-4 h-4" />
           </Button>
@@ -155,15 +167,12 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
         <motion.div whileTap={{ scale: 0.95 }}>
           <Button
             onClick={timer.isRunning ? timer.pause : timer.start}
-            className={`
-              w-36 h-12 rounded-2xl font-bold text-base tracking-widest
-              transition-all duration-200
-              ${
-                timer.isRunning
-                  ? "bg-[#E8E4DC]/90 hover:bg-[#E8E4DC] text-[#6B9B7A]"
-                  : "bg-[#F4A261] hover:bg-[#E8924F] text-[#2D4A35] opacity-90 hover:opacity-100"
-              }
-            `}
+            className="w-36 h-12 rounded-2xl font-bold text-base tracking-widest transition-all duration-200"
+            style={{
+              backgroundColor: timer.isRunning ? "var(--pomo-card)" : "var(--pomo-accent)",
+              color: timer.isRunning ? "var(--pomo-timer-bg)" : "var(--pomo-timer-text)",
+              opacity: timer.isRunning ? 1 : 0.9,
+            }}
           >
             <div className="flex items-center justify-center gap-2">
               {timer.isRunning ? (
@@ -186,7 +195,11 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
             variant="ghost"
             size="icon"
             onClick={timer.skip}
-            className="w-10 h-10 rounded-full bg-[#5A8A69] hover:bg-[#4A7A59] text-[#E8E4DC]"
+            className="w-10 h-10 rounded-full"
+            style={{
+              backgroundColor: "var(--pomo-timer-btn)",
+              color: "var(--pomo-card)",
+            }}
           >
             <SkipForward className="w-4 h-4" />
           </Button>
@@ -206,7 +219,8 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
               {[0, 1, 2].map((i) => (
                 <motion.div
                   key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-[#E8E4DC]/60"
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: "rgba(255,255,255,0.6)" }}
                   animate={{ opacity: [0.3, 1, 0.3] }}
                   transition={{
                     duration: 1.4,

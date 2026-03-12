@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { TimerMode, TimerSettings } from "@/app/types";
-import { playRingRepeated } from "@/app/data/ringtones";
+import { playRingRepeated, playClickSound, playBreakSound } from "@/app/data/ringtones";
 
 interface TimerState {
   mode: TimerMode;
@@ -97,14 +97,12 @@ export function useTimer(
 
   const completionFiredRef = useRef(false);
 
-  // Request notification permission once on mount
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
   }, []);
 
-  // Reset timer when settings durations change (only while paused)
   const prevDurationsRef = useRef({
     focusDuration: settings.focusDuration,
     breakDuration: settings.breakDuration,
@@ -131,10 +129,6 @@ export function useTimer(
     });
   }, [settings.focusDuration, settings.breakDuration, settings.longBreakDuration, settings]);
 
-  // ── Core countdown ──────────────────────────────────────────────────────────
-  // Fix: decrement first, then check if we hit 0.
-  // This ensures 00:01 → 00:00 triggers completion cleanly in one tick,
-  // with no lingering state at 0 that requires a hasCompleted guard.
   useEffect(() => {
     if (!state.isRunning) return;
 
@@ -145,22 +139,23 @@ export function useTimer(
         const next = prev.timeRemaining - 1;
 
         if (next > 0) {
-          // Still counting down
           return { ...prev, timeRemaining: next };
         }
 
-        // Reached 0 — complete this session
         const s = settingsRef.current;
         const duration = getDurationForMode(prev.mode, s);
         const completedMode = prev.mode;
 
-        // Guard against StrictMode double-invoke of setState updater
         if (!completionFiredRef.current) {
           completionFiredRef.current = true;
           setTimeout(() => {
             onCompleteRef.current(completedMode, duration);
             playRing(ringtoneIdRef.current, ringtoneRepeatRef.current);
             showNotification(completedMode);
+            // Play break transition sound when entering break
+            if (completedMode === "focus") {
+              setTimeout(() => playBreakSound(), 500);
+            }
             completionFiredRef.current = false;
           }, 0);
         }
@@ -182,10 +177,12 @@ export function useTimer(
   }, [state.isRunning]);
 
   const start = useCallback(() => {
+    playClickSound();
     setState(prev => ({ ...prev, isRunning: true }));
   }, []);
 
   const pause = useCallback(() => {
+    playClickSound();
     setState(prev => ({ ...prev, isRunning: false }));
   }, []);
 

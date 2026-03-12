@@ -18,8 +18,11 @@ export function KeyboardShortcutsHint() {
     <div className="fixed bottom-4 left-4 z-10">
       <button
         onClick={() => setOpen((p) => !p)}
-        className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-colors duration-200
-          ${open ? "bg-[#6B9B7A] text-white" : "bg-[#E8E4DC] hover:bg-[#DDD8CE] text-[#6B7B6B]"}`}
+        className="w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-colors duration-200"
+        style={{
+          backgroundColor: open ? "var(--pomo-primary)" : "var(--pomo-card)",
+          color: open ? "white" : "var(--pomo-neutral)",
+        }}
         aria-label="Keyboard shortcuts"
       >
         <Keyboard className="w-4 h-4" />
@@ -32,16 +35,22 @@ export function KeyboardShortcutsHint() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute bottom-12 left-0 bg-[#E8E4DC] rounded-2xl p-4 shadow-xl min-w-[180px]"
+            className="absolute bottom-12 left-0 rounded-2xl p-4 shadow-xl min-w-[180px]"
+            style={{ backgroundColor: "var(--pomo-card)" }}
           >
-            <p className="text-xs font-semibold text-[#5A5A5A] mb-3 tracking-wide uppercase">
+            <p className="text-xs font-semibold mb-3 tracking-wide uppercase"
+               style={{ color: "var(--pomo-text-secondary)" }}>
               Shortcuts
             </p>
             <div className="space-y-2">
               {SHORTCUTS.map((s) => (
                 <div key={s.key} className="flex items-center justify-between gap-4">
-                  <span className="text-xs text-[#6B7B6B]">{s.label}</span>
-                  <kbd className="px-2 py-0.5 bg-[#D4CFC6] rounded-md text-[10px] font-mono font-semibold text-[#2D4A35] min-w-[36px] text-center">
+                  <span className="text-xs" style={{ color: "var(--pomo-neutral)" }}>{s.label}</span>
+                  <kbd className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold min-w-[36px] text-center"
+                       style={{
+                         backgroundColor: "var(--pomo-input)",
+                         color: "var(--pomo-text)",
+                       }}>
                     {s.key}
                   </kbd>
                 </div>

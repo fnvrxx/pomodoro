@@ -7,24 +7,16 @@ interface MotivationalQuoteProps {
   show: boolean;
 }
 
-/**
- * Motivational Quote Component
- * 
- * Displays a random motivational quote when all tasks are completed.
- * Features smooth animations and the ability to get a new quote.
- */
 export function MotivationalQuote({ show }: MotivationalQuoteProps) {
   const [currentQuote, setCurrentQuote] = useState<QuoteType | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Set initial quote when shown
   useEffect(() => {
     if (show && !currentQuote) {
       setCurrentQuote(getRandomQuoteExcluding(null));
     }
   }, [show, currentQuote]);
 
-  // Get a new quote
   const handleRefresh = () => {
     setIsRefreshing(true);
     setTimeout(() => {
@@ -40,11 +32,11 @@ export function MotivationalQuote({ show }: MotivationalQuoteProps) {
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          transition={{ 
-            duration: 0.5, 
-            ease: [0.22, 1, 0.36, 1]
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="relative rounded-2xl p-5 mt-4 overflow-hidden"
+          style={{
+            background: "linear-gradient(to bottom right, var(--pomo-primary), var(--pomo-primary-dark))",
           }}
-          className="relative bg-gradient-to-br from-[#6B9B7A] to-[#5A8A69] rounded-2xl p-5 mt-4 overflow-hidden"
         >
           {/* Decorative elements */}
           <div className="absolute top-2 right-2 opacity-20">
@@ -58,26 +50,18 @@ export function MotivationalQuote({ show }: MotivationalQuoteProps) {
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {[...Array(6)].map((_, i) => (
               <motion.div
-                key={i}
+                key={`confetti-${i}`}
                 className="absolute w-2 h-2 rounded-full bg-white/30"
-                style={{
-                  left: `${15 + i * 15}%`,
-                  top: '20%',
-                }}
+                style={{ left: `${15 + i * 15}%`, top: '20%' }}
                 initial={{ y: 0, opacity: 0.3, scale: 1 }}
                 animate={{ y: -20, opacity: 0.7, scale: 1.1 }}
-                transition={{
-                  duration: 0.6,
-                  delay: i * 0.1,
-                  ease: 'easeOut',
-                }}
+                transition={{ duration: 0.6, delay: i * 0.1, ease: 'easeOut' }}
               />
             ))}
           </div>
 
           {/* Content */}
           <div className="relative z-10">
-            {/* Header */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <motion.div
@@ -85,7 +69,7 @@ export function MotivationalQuote({ show }: MotivationalQuoteProps) {
                   animate={{ rotate: [0, 10, -10, 0] }}
                   transition={{ duration: 0.5 }}
                 >
-                  <Sparkles className="w-5 h-5 text-[#F4A261]" />
+                  <Sparkles className="w-5 h-5" style={{ color: "var(--pomo-accent)" }} />
                 </motion.div>
                 <span className="text-sm font-bold text-white/90">Congratulations!</span>
               </div>
@@ -105,7 +89,6 @@ export function MotivationalQuote({ show }: MotivationalQuoteProps) {
               </motion.button>
             </div>
 
-            {/* Quote */}
             <AnimatePresence mode="wait">
               <motion.blockquote
                 key={currentQuote.text}
@@ -117,7 +100,7 @@ export function MotivationalQuote({ show }: MotivationalQuoteProps) {
               >
                 <Quote className="w-6 h-6 text-white/30 mx-auto mb-2" />
                 <p className="text-white text-lg font-medium leading-relaxed italic">
-                  "{currentQuote.text}"
+                  &ldquo;{currentQuote.text}&rdquo;
                 </p>
                 <footer className="mt-3">
                   <cite className="text-white/70 text-sm not-italic">
@@ -127,7 +110,6 @@ export function MotivationalQuote({ show }: MotivationalQuoteProps) {
               </motion.blockquote>
             </AnimatePresence>
 
-            {/* Action hint */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -139,7 +121,10 @@ export function MotivationalQuote({ show }: MotivationalQuoteProps) {
           </div>
 
           {/* Bottom gradient line */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#F4A261] to-transparent opacity-70" />
+          <div className="absolute bottom-0 left-0 right-0 h-1 opacity-70"
+               style={{
+                 background: `linear-gradient(to right, transparent, var(--pomo-accent), transparent)`,
+               }} />
         </motion.div>
       )}
     </AnimatePresence>

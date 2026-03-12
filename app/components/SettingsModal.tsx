@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Bell, Play, Minus, Plus } from 'lucide-react';
+import { Clock, Bell, Play, Minus, Plus, Palette, Database } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import type { TimerSettings } from '@/app/types';
-import { RINGTONES, getRingtoneById, playRingRepeated } from '@/app/data/ringtones';
+import { RINGTONES, playRingRepeated } from '@/app/data/ringtones';
+
+const THEMES = [
+  { id: 'sage', name: 'Sage', preview: '#6B9B7A' },
+  { id: 'pink', name: 'Pink', preview: '#D4849A' },
+];
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -15,15 +20,18 @@ interface SettingsModalProps {
   onRingtoneChange: (id: string) => void;
   ringtoneRepeat: number;
   onRingtoneRepeatChange: (n: number) => void;
+  theme: string;
+  onThemeChange: (id: string) => void;
 }
 
-export function SettingsModal({ isOpen, onClose, settings, onSave, ringtoneId, onRingtoneChange, ringtoneRepeat, onRingtoneRepeatChange }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, settings, onSave, ringtoneId, onRingtoneChange, ringtoneRepeat, onRingtoneRepeatChange, theme, onThemeChange }: SettingsModalProps) {
   const [localSettings, setLocalSettings] = useState<TimerSettings>(settings);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // Reset local settings when modal opens
   useEffect(() => {
     if (isOpen) {
       setLocalSettings(settings);
+      setShowClearConfirm(false);
     }
   }, [isOpen, settings]);
 
@@ -32,7 +40,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSave, ringtoneId, o
   };
 
   const handleClose = () => {
-    setLocalSettings(settings); // Reset to original values
+    setLocalSettings(settings);
     onClose();
   };
 
@@ -43,11 +51,16 @@ export function SettingsModal({ isOpen, onClose, settings, onSave, ringtoneId, o
     setLocalSettings(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleClearData = () => {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('pomodoro-'));
+    keys.forEach(k => localStorage.removeItem(k));
+    window.location.reload();
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -56,7 +69,6 @@ export function SettingsModal({ isOpen, onClose, settings, onSave, ringtoneId, o
             className="fixed inset-0 bg-black/50 modal-backdrop z-50"
           />
 
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -64,120 +76,118 @@ export function SettingsModal({ isOpen, onClose, settings, onSave, ringtoneId, o
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-4"
           >
-            <div className="bg-[#E8E4DC] rounded-3xl p-6 w-full max-w-sm shadow-2xl pointer-events-auto max-h-[90vh] overflow-y-auto">
+            <div className="rounded-3xl p-6 w-full max-w-sm shadow-2xl pointer-events-auto max-h-[90vh] overflow-y-auto"
+                 style={{ backgroundColor: "var(--pomo-card)" }}>
               {/* Header */}
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-[#8A8A8A] tracking-widest">SETTING</h2>
-                <div className="w-full h-px bg-[#D4CFC6] mt-3" />
+                <h2 className="text-2xl font-bold tracking-widest"
+                    style={{ color: "var(--pomo-text-muted)" }}>SETTING</h2>
+                <div className="w-full h-px mt-3" style={{ backgroundColor: "var(--pomo-input)" }} />
               </div>
 
               {/* Timer Section */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <Clock className="w-5 h-5 text-[#6B7B6B]" />
-                  <span className="text-sm font-medium text-[#6B7B6B] uppercase tracking-wider">Timer</span>
+                  <Clock className="w-5 h-5" style={{ color: "var(--pomo-neutral)" }} />
+                  <span className="text-sm font-medium uppercase tracking-wider"
+                        style={{ color: "var(--pomo-neutral)" }}>Timer</span>
                 </div>
 
-                {/* Time Inputs */}
                 <div className="mb-4">
-                  <label className="block text-sm text-[#5A5A5A] mb-3">Time (minutes)</label>
+                  <label className="block text-sm mb-3" style={{ color: "var(--pomo-text-secondary)" }}>Time (minutes)</label>
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <label className="block text-xs text-[#8A8A8A] mb-1 text-center">Pomodoro</label>
+                      <label className="block text-xs mb-1 text-center"
+                             style={{ color: "var(--pomo-text-muted)" }}>Pomodoro</label>
                       <Input
                         type="number"
                         min={1}
                         max={60}
                         value={localSettings.focusDuration}
                         onChange={(e) => updateSetting('focusDuration', Math.max(1, Math.min(60, parseInt(e.target.value) || 25)))}
-                        className="bg-[#D4CFC6] border-none rounded-xl py-3 px-4 
-                                 text-[#2D4A35] text-center font-medium
-                                 focus:ring-2 focus:ring-[#6B9B7A]/50"
+                        className="border-none rounded-xl py-3 px-4 text-center font-medium"
+                        style={{ backgroundColor: "var(--pomo-input)", color: "var(--pomo-text)" }}
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-xs text-[#8A8A8A] mb-1 text-center">Break</label>
+                      <label className="block text-xs mb-1 text-center"
+                             style={{ color: "var(--pomo-text-muted)" }}>Break</label>
                       <Input
                         type="number"
                         min={1}
                         max={30}
                         value={localSettings.breakDuration}
                         onChange={(e) => updateSetting('breakDuration', Math.max(1, Math.min(30, parseInt(e.target.value) || 5)))}
-                        className="bg-[#D4CFC6] border-none rounded-xl py-3 px-4 
-                                 text-[#2D4A35] text-center font-medium
-                                 focus:ring-2 focus:ring-[#6B9B7A]/50"
+                        className="border-none rounded-xl py-3 px-4 text-center font-medium"
+                        style={{ backgroundColor: "var(--pomo-input)", color: "var(--pomo-text)" }}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Long Break Interval */}
                 <div className="mb-4">
                   <div className="flex justify-between items-center">
-                    <label className="text-sm text-[#5A5A5A]">Long Break Interval</label>
+                    <label className="text-sm" style={{ color: "var(--pomo-text-secondary)" }}>Long Break Interval</label>
                     <Input
                       type="number"
                       min={1}
                       max={10}
                       value={localSettings.longBreakInterval}
                       onChange={(e) => updateSetting('longBreakInterval', Math.max(1, Math.min(10, parseInt(e.target.value) || 4)))}
-                      className="bg-[#D4CFC6] border-none rounded-xl py-2 px-3 
-                               text-[#2D4A35] text-center font-medium w-20
-                               focus:ring-2 focus:ring-[#6B9B7A]/50"
+                      className="border-none rounded-xl py-2 px-3 text-center font-medium w-20"
+                      style={{ backgroundColor: "var(--pomo-input)", color: "var(--pomo-text)" }}
                     />
                   </div>
-                  <p className="text-xs text-[#8A8A8A] mt-1">
+                  <p className="text-xs mt-1" style={{ color: "var(--pomo-text-muted)" }}>
                     Take a long break after every {localSettings.longBreakInterval} focus sessions
                   </p>
                 </div>
 
-                {/* Long Break Duration */}
                 <div>
                   <div className="flex justify-between items-center">
-                    <label className="text-sm text-[#5A5A5A]">Time Long Break (minutes)</label>
+                    <label className="text-sm" style={{ color: "var(--pomo-text-secondary)" }}>Time Long Break (minutes)</label>
                     <Input
                       type="number"
                       min={1}
                       max={60}
                       value={localSettings.longBreakDuration}
                       onChange={(e) => updateSetting('longBreakDuration', Math.max(1, Math.min(60, parseInt(e.target.value) || 15)))}
-                      className="bg-[#D4CFC6] border-none rounded-xl py-2 px-3
-                               text-[#2D4A35] text-center font-medium w-20
-                               focus:ring-2 focus:ring-[#6B9B7A]/50"
+                      className="border-none rounded-xl py-2 px-3 text-center font-medium w-20"
+                      style={{ backgroundColor: "var(--pomo-input)", color: "var(--pomo-text)" }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Divider */}
-              <div className="w-full h-px bg-[#D4CFC6] mb-6" />
+              <div className="w-full h-px mb-6" style={{ backgroundColor: "var(--pomo-input)" }} />
 
               {/* Ringtone Section */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <Bell className="w-5 h-5 text-[#6B7B6B]" />
-                  <span className="text-sm font-medium text-[#6B7B6B] uppercase tracking-wider">Ringtone</span>
+                  <Bell className="w-5 h-5" style={{ color: "var(--pomo-neutral)" }} />
+                  <span className="text-sm font-medium uppercase tracking-wider"
+                        style={{ color: "var(--pomo-neutral)" }}>Ringtone</span>
                 </div>
                 <div className="space-y-2">
                   {RINGTONES.map((r) => (
                     <div
                       key={r.id}
                       onClick={() => onRingtoneChange(r.id)}
-                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-colors duration-150 cursor-pointer
-                        ${ringtoneId === r.id
-                          ? 'bg-[#6B9B7A] text-white'
-                          : 'bg-[#D4CFC6] text-[#2D4A35] hover:bg-[#C9C4BB]'
-                        }`}
+                      className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-colors duration-150 cursor-pointer"
+                      style={{
+                        backgroundColor: ringtoneId === r.id ? "var(--pomo-primary)" : "var(--pomo-input)",
+                        color: ringtoneId === r.id ? "white" : "var(--pomo-text)",
+                      }}
                     >
                       <span className="text-sm font-medium">{r.name}</span>
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); playRingRepeated(r.id, ringtoneRepeat); }}
-                        className={`p-1.5 rounded-full transition-colors duration-150
-                          ${ringtoneId === r.id
-                            ? 'bg-white/20 hover:bg-white/30 text-white'
-                            : 'bg-[#B8B3AA] hover:bg-[#A8A39A] text-[#5A5A5A]'
-                          }`}
+                        className="p-1.5 rounded-full transition-colors duration-150"
+                        style={{
+                          backgroundColor: ringtoneId === r.id ? "rgba(255,255,255,0.2)" : "var(--pomo-neutral-light)",
+                          color: ringtoneId === r.id ? "white" : "var(--pomo-text-secondary)",
+                        }}
                         aria-label={`Preview ${r.name}`}
                       >
                         <Play className="w-3 h-3" />
@@ -186,11 +196,10 @@ export function SettingsModal({ isOpen, onClose, settings, onSave, ringtoneId, o
                   ))}
                 </div>
 
-                {/* Repeat count */}
                 <div className="mt-4 flex items-center justify-between px-1">
                   <div>
-                    <span className="text-sm text-[#5A5A5A]">Repeat</span>
-                    <p className="text-xs text-[#8A8A8A] mt-0.5">
+                    <span className="text-sm" style={{ color: "var(--pomo-text-secondary)" }}>Repeat</span>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--pomo-text-muted)" }}>
                       {ringtoneRepeat === 1 ? 'Play once' : `Play ${ringtoneRepeat}× in a row`}
                     </p>
                   </div>
@@ -199,41 +208,114 @@ export function SettingsModal({ isOpen, onClose, settings, onSave, ringtoneId, o
                       type="button"
                       onClick={() => onRingtoneRepeatChange(Math.max(1, ringtoneRepeat - 1))}
                       disabled={ringtoneRepeat <= 1}
-                      className="w-8 h-8 rounded-full bg-[#D4CFC6] hover:bg-[#C9C4BB] disabled:opacity-40
-                                 flex items-center justify-center transition-colors duration-150"
+                      className="w-8 h-8 rounded-full disabled:opacity-40 flex items-center justify-center transition-colors duration-150"
+                      style={{ backgroundColor: "var(--pomo-input)" }}
                     >
-                      <Minus className="w-3 h-3 text-[#2D4A35]" />
+                      <Minus className="w-3 h-3" style={{ color: "var(--pomo-text)" }} />
                     </button>
-                    <span className="w-6 text-center font-bold text-[#2D4A35]">{ringtoneRepeat}</span>
+                    <span className="w-6 text-center font-bold" style={{ color: "var(--pomo-text)" }}>{ringtoneRepeat}</span>
                     <button
                       type="button"
                       onClick={() => onRingtoneRepeatChange(Math.min(5, ringtoneRepeat + 1))}
                       disabled={ringtoneRepeat >= 5}
-                      className="w-8 h-8 rounded-full bg-[#D4CFC6] hover:bg-[#C9C4BB] disabled:opacity-40
-                                 flex items-center justify-center transition-colors duration-150"
+                      className="w-8 h-8 rounded-full disabled:opacity-40 flex items-center justify-center transition-colors duration-150"
+                      style={{ backgroundColor: "var(--pomo-input)" }}
                     >
-                      <Plus className="w-3 h-3 text-[#2D4A35]" />
+                      <Plus className="w-3 h-3" style={{ color: "var(--pomo-text)" }} />
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Divider */}
-              <div className="w-full h-px bg-[#D4CFC6] mb-6" />
+              <div className="w-full h-px mb-6" style={{ backgroundColor: "var(--pomo-input)" }} />
+
+              {/* Theme Section */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Palette className="w-5 h-5" style={{ color: "var(--pomo-neutral)" }} />
+                  <span className="text-sm font-medium uppercase tracking-wider"
+                        style={{ color: "var(--pomo-neutral)" }}>Theme</span>
+                </div>
+                <div className="flex gap-3">
+                  {THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => onThemeChange(t.id)}
+                      className="flex-1 flex items-center gap-2 px-4 py-3 rounded-xl transition-all duration-150"
+                      style={{
+                        backgroundColor: theme === t.id ? "var(--pomo-primary)" : "var(--pomo-input)",
+                        color: theme === t.id ? "white" : "var(--pomo-text)",
+                        border: theme === t.id ? "2px solid var(--pomo-primary-dark)" : "2px solid transparent",
+                      }}
+                    >
+                      <div
+                        className="w-5 h-5 rounded-full flex-shrink-0 border-2 border-white/50"
+                        style={{ backgroundColor: t.preview }}
+                      />
+                      <span className="text-sm font-medium">{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="w-full h-px mb-6" style={{ backgroundColor: "var(--pomo-input)" }} />
+
+              {/* Data Section */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Database className="w-5 h-5" style={{ color: "var(--pomo-neutral)" }} />
+                  <span className="text-sm font-medium uppercase tracking-wider"
+                        style={{ color: "var(--pomo-neutral)" }}>Data</span>
+                </div>
+                {!showClearConfirm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowClearConfirm(true)}
+                    className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-red-500 transition-colors duration-150"
+                    style={{ backgroundColor: "var(--pomo-input)" }}
+                  >
+                    Clear All Data
+                  </button>
+                ) : (
+                  <div className="p-3 rounded-xl" style={{ backgroundColor: "var(--pomo-input)" }}>
+                    <p className="text-xs mb-3" style={{ color: "var(--pomo-text-secondary)" }}>
+                      Semua data (tasks, progress, settings) akan dihapus permanen. Lanjutkan?
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleClearData}
+                        className="flex-1 py-2 rounded-lg bg-red-500 text-white text-xs font-medium transition-colors hover:bg-red-600"
+                      >
+                        Ya, Hapus Semua
+                      </button>
+                      <button
+                        onClick={() => setShowClearConfirm(false)}
+                        className="flex-1 py-2 rounded-lg text-xs font-medium transition-colors"
+                        style={{ backgroundColor: "var(--pomo-card)", color: "var(--pomo-text-secondary)" }}
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="w-full h-px mb-6" style={{ backgroundColor: "var(--pomo-input)" }} />
 
               {/* Footer Buttons */}
               <div className="flex justify-end gap-3">
                 <Button
                   variant="ghost"
                   onClick={handleClose}
-                  className="px-6 py-2 rounded-xl text-[#6B7B6B] hover:bg-[#D4CFC6] font-medium"
+                  className="px-6 py-2 rounded-xl font-medium"
+                  style={{ color: "var(--pomo-neutral)" }}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSave}
-                  className="px-8 py-2 rounded-xl bg-[#4A5A4A] hover:bg-[#3A4A3A] 
-                           text-white font-medium transition-all duration-200"
+                  className="px-8 py-2 rounded-xl text-white font-medium transition-all duration-200"
+                  style={{ backgroundColor: "var(--pomo-neutral-dark)" }}
                 >
                   OK
                 </Button>

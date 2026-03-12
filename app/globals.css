@@ -64,6 +64,72 @@
   }
 }
 
+/* ── Pomodoro Theme System ─────────────────────────────────────────────── */
+:root,
+[data-theme="sage"] {
+  --pomo-bg: #B8C4B8;
+  --pomo-card: #E8E4DC;
+  --pomo-card-hover: #DDD8CE;
+  --pomo-input: #D4CFC6;
+  --pomo-input-hover: #C9C4BB;
+  --pomo-primary: #6B9B7A;
+  --pomo-primary-dark: #5A8A69;
+  --pomo-primary-darker: #4A7A59;
+  --pomo-accent: #F4A261;
+  --pomo-accent-hover: #E8924F;
+  --pomo-text: #2D4A35;
+  --pomo-text-secondary: #5A5A5A;
+  --pomo-text-muted: #8A8A8A;
+  --pomo-text-subtle: #9A9A9A;
+  --pomo-neutral: #6B7B6B;
+  --pomo-neutral-dark: #5A6A5A;
+  --pomo-neutral-light: #B8B3AA;
+  --pomo-neutral-lighter: #A8A39A;
+  --pomo-timer-bg: #6B9B7A;
+  --pomo-timer-text: #2D4A35;
+  --pomo-timer-sub: #3D5A45;
+  --pomo-timer-btn: #5A8A69;
+  --pomo-timer-btn-hover: #4A7A59;
+  --pomo-priority-low: #6B9B7A;
+  --pomo-priority-medium: #F4A261;
+  --pomo-priority-high: #f87171;
+  --pomo-ring-focus: rgba(107, 155, 122, 0.5);
+  --pomo-scrollbar: rgba(107, 123, 107, 0.3);
+  --pomo-scrollbar-hover: rgba(107, 123, 107, 0.5);
+}
+
+[data-theme="pink"] {
+  --pomo-bg: #F5E6E0;
+  --pomo-card: #FFF5F2;
+  --pomo-card-hover: #FFEEE9;
+  --pomo-input: #F0DDD8;
+  --pomo-input-hover: #E8CFC8;
+  --pomo-primary: #D4849A;
+  --pomo-primary-dark: #C4748A;
+  --pomo-primary-darker: #B4647A;
+  --pomo-accent: #F2C1AC;
+  --pomo-accent-hover: #E8B19C;
+  --pomo-text: #4A3540;
+  --pomo-text-secondary: #6A5560;
+  --pomo-text-muted: #9A8A90;
+  --pomo-text-subtle: #B0A0A6;
+  --pomo-neutral: #8A7580;
+  --pomo-neutral-dark: #7A6570;
+  --pomo-neutral-light: #C4B5BA;
+  --pomo-neutral-lighter: #B4A5AA;
+  --pomo-timer-bg: #D4849A;
+  --pomo-timer-text: #4A3540;
+  --pomo-timer-sub: #6A4555;
+  --pomo-timer-btn: #C4748A;
+  --pomo-timer-btn-hover: #B4647A;
+  --pomo-priority-low: #82C9A5;
+  --pomo-priority-medium: #F2C1AC;
+  --pomo-priority-high: #E88A8A;
+  --pomo-ring-focus: rgba(212, 132, 154, 0.5);
+  --pomo-scrollbar: rgba(138, 117, 128, 0.3);
+  --pomo-scrollbar-hover: rgba(138, 117, 128, 0.5);
+}
+
 
 /* Custom styles for Pomodoro Timer App */
 
@@ -82,12 +148,12 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(107, 123, 107, 0.3);
+  background: var(--pomo-scrollbar);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 123, 107, 0.5);
+  background: var(--pomo-scrollbar-hover);
 }
 
 /* Timer digit font styling */
@@ -150,7 +216,7 @@ html {
 input:focus,
 textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(107, 123, 107, 0.3);
+  box-shadow: 0 0 0 2px var(--pomo-ring-focus);
 }
 
 /* Checkbox custom styling */
@@ -158,15 +224,15 @@ textarea:focus {
   appearance: none;
   width: 20px;
   height: 20px;
-  border: 2px solid #6B7B6B;
+  border: 2px solid var(--pomo-neutral);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .custom-checkbox:checked {
-  background-color: #6B7B6B;
-  border-color: #6B7B6B;
+  background-color: var(--pomo-neutral);
+  border-color: var(--pomo-neutral);
 }
 
 .custom-checkbox:checked::after {
@@ -197,4 +263,14 @@ button {
   transition-property: color, background-color, opacity, transform, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
+}
+
+/* Focus mode — grayscale everything except timer */
+.focus-active .focus-grayscale {
+  filter: grayscale(1) opacity(0.7);
+  transition: filter 0.5s ease;
+}
+
+.focus-grayscale {
+  transition: filter 0.5s ease;
 }

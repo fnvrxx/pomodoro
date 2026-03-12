@@ -26,6 +26,7 @@ export default function Home() {
     customPlaylists, setCustomPlaylists,
     ringtoneId, setRingtoneId,
     ringtoneRepeat, setRingtoneRepeat,
+    theme, setTheme,
   } = useAppPersistence();
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -33,6 +34,11 @@ export default function Home() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isMusicPlayerOpen, setIsMusicPlayerOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   // ── Timer ────────────────────────────────────────────────────────────────────
 
@@ -205,11 +211,14 @@ export default function Home() {
     document.title = `${timer.formattedTime} - ${modeLabel}`;
   }, [timer.formattedTime, timer.mode]);
 
+  const isFocusActive = timer.isRunning && timer.mode === "focus";
+
   return (
-    <div className="min-h-screen bg-[#B8C4B8] flex flex-col items-center justify-center p-4 sm:p-6">
+    <div className={`min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 ${isFocusActive ? "focus-active" : ""}`}
+         style={{ backgroundColor: "var(--pomo-bg)" }}>
       {/* Header buttons */}
       <motion.div
-        className="fixed top-4 right-4 flex gap-2 z-10"
+        className="fixed top-4 right-4 flex gap-2 z-10 focus-grayscale"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -218,7 +227,8 @@ export default function Home() {
           variant="secondary"
           size="sm"
           onClick={() => setIsProgressModalOpen(true)}
-          className="bg-[#E8E4DC] hover:bg-[#DDD8CE] text-[#5A5A5A] rounded-full px-4 py-2 flex items-center gap-2 shadow-md"
+          className="rounded-full px-4 py-2 flex items-center gap-2 shadow-md"
+          style={{ backgroundColor: "var(--pomo-card)", color: "var(--pomo-text-secondary)" }}
         >
           <BarChart3 className="w-4 h-4" />
           <span className="hidden sm:inline">Progress</span>
@@ -227,7 +237,8 @@ export default function Home() {
           variant="secondary"
           size="sm"
           onClick={() => setIsSettingsModalOpen(true)}
-          className="bg-[#6B7B6B] hover:bg-[#5A6A5A] text-white rounded-full p-2 shadow-md"
+          className="rounded-full p-2 shadow-md text-white"
+          style={{ backgroundColor: "var(--pomo-neutral)" }}
         >
           <Settings className="w-4 h-4" />
         </Button>
@@ -235,9 +246,11 @@ export default function Home() {
           variant="secondary"
           size="sm"
           onClick={() => setIsMusicPlayerOpen(prev => !prev)}
-          className={`rounded-full p-2 shadow-md transition-colors duration-200 ${
-            isMusicPlayerOpen ? "bg-[#F4A261] text-white" : "bg-[#E8E4DC] hover:bg-[#DDD8CE] text-[#5A5A5A]"
-          }`}
+          className="rounded-full p-2 shadow-md transition-colors duration-200"
+          style={{
+            backgroundColor: isMusicPlayerOpen ? "var(--pomo-accent)" : "var(--pomo-card)",
+            color: isMusicPlayerOpen ? "white" : "var(--pomo-text-secondary)",
+          }}
         >
           <Music className="w-4 h-4" />
         </Button>
@@ -260,6 +273,7 @@ export default function Home() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.25 }}
+              className="focus-grayscale"
             >
               <MusicPlayer
                 customPlaylists={customPlaylists}
@@ -274,6 +288,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          className="focus-grayscale"
         >
           <TaskList
             tasks={tasks}
@@ -285,6 +300,7 @@ export default function Home() {
             onClearFinished={handleClearFinishedTasks}
             onClearAll={handleClearAllTasks}
             onSelectTask={handleSelectTask}
+            settings={settings}
           />
         </motion.div>
 
@@ -313,6 +329,8 @@ export default function Home() {
         onRingtoneChange={setRingtoneId}
         ringtoneRepeat={ringtoneRepeat}
         onRingtoneRepeatChange={setRingtoneRepeat}
+        theme={theme}
+        onThemeChange={setTheme}
       />
 
       <KeyboardShortcutsHint />

@@ -78,6 +78,10 @@ export function useAppPersistence() {
     'pomodoro-ringtone-repeat',
     1,
   );
+  const [theme, setTheme] = useLocalStorage<string>(
+    'pomodoro-theme',
+    'sage',
+  );
 
   return {
     tasks, setTasks,
@@ -87,5 +91,6 @@ export function useAppPersistence() {
     customPlaylists, setCustomPlaylists,
     ringtoneId, setRingtoneId,
     ringtoneRepeat, setRingtoneRepeat,
+    theme, setTheme,
   };
 }
