@@ -206,7 +206,7 @@ export function TaskCompletionProgress({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl p-4 mt-4 shadow-md"
+      className="rounded-2xl p-4 shadow-md"
       style={{ backgroundColor: "var(--pomo-card)" }}
     >
       {/* Plant + Stats row */}

@@ -274,3 +274,16 @@ button {
 .focus-grayscale {
   transition: filter 0.5s ease;
 }
+
+/* Focus mode — smooth background transition */
+.focus-active {
+  transition: background-color 0.6s ease;
+}
+
+/* Focus mode — timer card becomes white with dark text */
+.focus-active .focus-timer-card {
+  --pomo-timer-bg: #ffffff;
+  --pomo-timer-text: #111111;
+  --pomo-timer-sub: rgba(0, 0, 0, 0.5);
+  --pomo-timer-btn: rgba(0, 0, 0, 0.08);
+}

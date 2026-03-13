@@ -18,12 +18,13 @@ interface TimerCardProps {
     skip: () => void;
   };
   settings: TimerSettings;
+  isFocusActive?: boolean;
 }
 
 const RADIUS = 50 - 5 / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function TimerCard({ timer, settings }: TimerCardProps) {
+export function TimerCard({ timer, settings, isFocusActive = false }: TimerCardProps) {
   const isFocus = timer.mode === "focus";
   const isLongBreak = timer.mode === "longBreak";
 
@@ -34,8 +35,8 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
   const modeLabel = isFocus ? "Focus" : isLongBreak ? "Long Break" : "Break";
 
   return (
-    <div className="rounded-3xl px-4 pt-3 pb-2 shadow-xl"
-         style={{ backgroundColor: "var(--pomo-timer-bg)" }}>
+    <div className="rounded-3xl px-4 pt-3 pb-2 shadow-xl focus-timer-card"
+         style={{ backgroundColor: "var(--pomo-timer-bg)", transition: "background-color 0.6s ease" }}>
       {/* Mode Tabs */}
       <div className="flex justify-center gap-2 mb-4">
         {(["focus", "break"] as TimerMode[]).map((m) => (
@@ -44,8 +45,12 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
             onClick={() => timer.switchMode(m)}
             className="px-5 py-1.5 rounded-full text-sm font-medium transition-colors duration-200"
             style={{
-              backgroundColor: timer.mode === m ? "var(--pomo-card)" : "transparent",
-              color: timer.mode === m ? "var(--pomo-timer-bg)" : "var(--pomo-timer-sub)",
+              backgroundColor: timer.mode === m
+                ? (isFocusActive ? "#111111" : "var(--pomo-card)")
+                : "transparent",
+              color: timer.mode === m
+                ? (isFocusActive ? "#ffffff" : "var(--pomo-timer-bg)")
+                : "var(--pomo-timer-sub)",
             }}
             whileTap={{ scale: 0.95 }}
           >
@@ -62,7 +67,7 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
             cy="55"
             r={RADIUS}
             fill="none"
-            stroke="rgba(255,255,255,0.12)"
+            stroke={isFocusActive ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.12)"}
             strokeWidth="5"
           />
           <motion.circle
@@ -71,9 +76,9 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
             r={RADIUS}
             fill="none"
             stroke={
-              timer.isRunning
-                ? "rgba(255,255,255,0.6)"
-                : "rgba(255,255,255,0.28)"
+              isFocusActive
+                ? (timer.isRunning ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.28)")
+                : (timer.isRunning ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.28)")
             }
             strokeWidth="5"
             strokeLinecap="round"
@@ -91,16 +96,12 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
         </svg>
 
         <div className="absolute flex flex-col items-center gap-0.5">
-          <motion.span
+          <span
             className="text-6xl sm:text-7xl font-bold tabular-nums leading-none"
             style={{ color: "var(--pomo-timer-text)" }}
-            key={timer.formattedTime}
-            initial={{ opacity: 0.7 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.1 }}
           >
             {timer.formattedTime}
-          </motion.span>
+          </span>
           <span className="text-[11px] tracking-[0.2em] uppercase font-semibold"
                 style={{ color: "var(--pomo-timer-sub)" }}>
             {modeLabel}
@@ -157,7 +158,7 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
             className="w-10 h-10 rounded-full"
             style={{
               backgroundColor: "var(--pomo-timer-btn)",
-              color: "var(--pomo-card)",
+              color: isFocusActive ? "#111111" : "var(--pomo-card)",
             }}
           >
             <RotateCcw className="w-4 h-4" />
@@ -169,8 +170,12 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
             onClick={timer.isRunning ? timer.pause : timer.start}
             className="w-36 h-12 rounded-2xl font-bold text-base tracking-widest transition-all duration-200"
             style={{
-              backgroundColor: timer.isRunning ? "var(--pomo-card)" : "var(--pomo-accent)",
-              color: timer.isRunning ? "var(--pomo-timer-bg)" : "var(--pomo-timer-text)",
+              backgroundColor: timer.isRunning
+                ? (isFocusActive ? "#111111" : "var(--pomo-card)")
+                : "var(--pomo-accent)",
+              color: timer.isRunning
+                ? (isFocusActive ? "#ffffff" : "var(--pomo-timer-bg)")
+                : "var(--pomo-timer-text)",
               opacity: timer.isRunning ? 1 : 0.9,
             }}
           >
@@ -198,7 +203,7 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
             className="w-10 h-10 rounded-full"
             style={{
               backgroundColor: "var(--pomo-timer-btn)",
-              color: "var(--pomo-card)",
+              color: isFocusActive ? "#111111" : "var(--pomo-card)",
             }}
           >
             <SkipForward className="w-4 h-4" />
@@ -220,7 +225,7 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
                 <motion.div
                   key={i}
                   className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: "rgba(255,255,255,0.6)" }}
+                  style={{ backgroundColor: isFocusActive ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.6)" }}
                   animate={{ opacity: [0.3, 1, 0.3] }}
                   transition={{
                     duration: 1.4,

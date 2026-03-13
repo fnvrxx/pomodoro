@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Clock, Flame } from 'lucide-react';
+import { X, Clock, Flame, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/app/components/ui/chart';
 import type { UserProgress, Task, TimerSettings } from '@/app/types';
 
 interface ProgressModalProps {
@@ -32,6 +34,95 @@ export function ProgressModal({ isOpen, onClose, progress, tasks, settings }: Pr
       }))
       .sort((a, b) => b.time - a.time);
   }, [tasks, settings.focusDuration]);
+
+  const [chartPeriod, setChartPeriod] = useState<'week' | 'month' | 'year'>('week');
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  function formatDayLabel(d: Date): string {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[d.getMonth()]}-${d.getDate()} (${days[d.getDay()]})`;
+  }
+
+  function getWeekLabel(offset: number): string {
+    if (offset === 0) return 'This Week';
+    if (offset === -1) return 'Last Week';
+    const today = new Date();
+    const dow = today.getDay();
+    const saturdayOffset = dow === 6 ? 0 : -(dow + 1);
+    const sat = new Date(today);
+    sat.setDate(today.getDate() + saturdayOffset + offset * 7);
+    const fri = new Date(sat);
+    fri.setDate(sat.getDate() + 6);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[sat.getMonth()]} ${sat.getDate()} - ${months[fri.getMonth()]} ${fri.getDate()}`;
+  }
+
+  const chartData = useMemo(() => {
+    const todayIso = new Date().toISOString().split('T')[0];
+
+    if (chartPeriod === 'week') {
+      const today = new Date();
+      const dow = today.getDay();
+      const saturdayOffset = dow === 6 ? 0 : -(dow + 1);
+      const saturday = new Date(today);
+      saturday.setDate(today.getDate() + saturdayOffset + weekOffset * 7);
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(saturday);
+        d.setDate(saturday.getDate() + i);
+        const isoDate = d.toISOString().split('T')[0];
+        const stat = progress.dailyStats.find(s => s.date === isoDate);
+        return {
+          label: formatDayLabel(d),
+          hours: stat ? +(stat.focusTime / 60).toFixed(2) : 0,
+          isToday: isoDate === todayIso,
+        };
+      });
+    }
+
+    if (chartPeriod === 'month') {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const weeks: { label: string; hours: number; isToday: boolean }[] = [];
+      for (let week = 0; week < Math.ceil(daysInMonth / 7); week++) {
+        const start = week * 7 + 1;
+        const end = Math.min(start + 6, daysInMonth);
+        let totalHours = 0;
+        let hasToday = false;
+        for (let day = start; day <= end; day++) {
+          const d = new Date(year, month, day);
+          const iso = d.toISOString().split('T')[0];
+          const stat = progress.dailyStats.find(s => s.date === iso);
+          if (stat) totalHours += stat.focusTime / 60;
+          if (iso === todayIso) hasToday = true;
+        }
+        weeks.push({ label: `${monthNames[month]} ${start}-${end}`, hours: +totalHours.toFixed(2), isToday: hasToday });
+      }
+      return weeks;
+    }
+
+    if (chartPeriod === 'year') {
+      const year = new Date().getFullYear();
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return monthNames.map((monthLabel, m) => {
+        const monthStats = progress.dailyStats.filter(s => {
+          const d = new Date(s.date);
+          return d.getFullYear() === year && d.getMonth() === m;
+        });
+        const totalHours = monthStats.reduce((acc, s) => acc + s.focusTime / 60, 0);
+        return { label: monthLabel, hours: +totalHours.toFixed(2), isToday: false };
+      });
+    }
+
+    return [];
+  }, [progress.dailyStats, chartPeriod, weekOffset]);
+
+  const chartConfig = {
+    hours: { label: 'Focus Hours', color: 'var(--pomo-primary)' },
+  } satisfies ChartConfig;
 
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -127,6 +218,104 @@ export function ProgressModal({ isOpen, onClose, progress, tasks, settings }: Pr
                     <div className="text-2xl font-bold" style={{ color: "var(--pomo-text)" }}>{formatTime(todayFocusTime)}</div>
                     <div className="text-xs" style={{ color: "var(--pomo-text-muted)" }}>focus time</div>
                   </div>
+                </div>
+              </motion.div>
+
+              {/* Focus Hours Histogram */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="mb-6"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium" style={{ color: 'var(--pomo-text-secondary)' }}>Focus Hours</h3>
+                  <div className="flex gap-1 rounded-full p-0.5" style={{ backgroundColor: 'var(--pomo-input)' }}>
+                    {(['week', 'month', 'year'] as const).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => { setChartPeriod(p); setWeekOffset(0); }}
+                        className="px-3 py-1 text-xs rounded-full transition-colors duration-150"
+                        style={{
+                          backgroundColor: chartPeriod === p ? 'var(--pomo-primary)' : 'transparent',
+                          color: chartPeriod === p ? '#ffffff' : 'var(--pomo-text-muted)',
+                          fontWeight: chartPeriod === p ? 600 : 400,
+                        }}
+                      >
+                        {p.charAt(0).toUpperCase() + p.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {chartPeriod === 'week' && (
+                  <div className="flex items-center justify-between mb-2">
+                    <button
+                      onClick={() => setWeekOffset(prev => prev - 1)}
+                      className="w-7 h-7 flex items-center justify-center rounded-full"
+                      style={{ backgroundColor: 'var(--pomo-input)', color: 'var(--pomo-text-muted)' }}
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-xs font-semibold" style={{ color: 'var(--pomo-text)' }}>
+                      {getWeekLabel(weekOffset)}
+                    </span>
+                    <button
+                      onClick={() => setWeekOffset(prev => Math.min(prev + 1, 0))}
+                      disabled={weekOffset >= 0}
+                      className="w-7 h-7 flex items-center justify-center rounded-full"
+                      style={{
+                        backgroundColor: 'var(--pomo-input)',
+                        color: 'var(--pomo-text-muted)',
+                        opacity: weekOffset >= 0 ? 0.35 : 1,
+                      }}
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                <div className="rounded-2xl p-3 pt-4" style={{ backgroundColor: 'var(--pomo-input)' }}>
+                  <ChartContainer config={chartConfig} className="h-44 w-full aspect-auto">
+                    <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 30, left: -10 }}>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--pomo-input-hover)" />
+                      <XAxis
+                        dataKey="label"
+                        interval={0}
+                        tick={(props) => {
+                          const { x, y, payload } = props as { x: number; y: number; payload: { value: string } };
+                          const isToday = chartData.find(d => d.label === payload.value)?.isToday;
+                          return (
+                            <text
+                              x={x}
+                              y={y + 10}
+                              textAnchor="middle"
+                              fontSize={8}
+                              fontWeight={isToday ? 700 : 400}
+                              fill="var(--pomo-text-muted)"
+                              transform={`rotate(-35, ${x}, ${y + 10})`}
+                            >
+                              {payload.value}
+                            </text>
+                          );
+                        }}
+                      />
+                      <YAxis
+                        tickFormatter={(v) => `${v}`}
+                        fontSize={9}
+                        tick={{ fill: 'var(--pomo-text-muted)' }}
+                        width={28}
+                      />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(value) => [`${value}h`, 'Focus']}
+                          />
+                        }
+                      />
+                      <Bar dataKey="hours" fill="var(--pomo-primary)" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ChartContainer>
                 </div>
               </motion.div>
 

@@ -251,6 +251,24 @@ export function TaskList({
   return (
     <div className="rounded-3xl p-5 sm:p-6 shadow-xl"
          style={{ backgroundColor: "var(--pomo-card)" }}>
+      {/* Task Completion Progress — top */}
+      <AnimatePresence>
+        {tasks.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-4"
+          >
+            <TaskCompletionProgress
+              completedCount={completedTasks.length}
+              totalCount={tasks.length}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
@@ -375,23 +393,6 @@ export function TaskList({
         <Plus className="w-4 h-4" />
         <span className="font-medium">Tambahkan Task</span>
       </button>
-
-      {/* Task Completion Progress */}
-      <AnimatePresence>
-        {tasks.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <TaskCompletionProgress
-              completedCount={completedTasks.length}
-              totalCount={tasks.length}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Motivational Quote */}
       <MotivationalQuote show={allTasksCompleted} />

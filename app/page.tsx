@@ -215,7 +215,10 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 ${isFocusActive ? "focus-active" : ""}`}
-         style={{ backgroundColor: "var(--pomo-bg)" }}>
+         style={{
+           backgroundColor: isFocusActive ? "#000000" : "var(--pomo-bg)",
+           transition: "background-color 0.6s ease",
+         }}>
       {/* Header buttons */}
       <motion.div
         className="fixed top-4 right-4 flex gap-2 z-10 focus-grayscale"
@@ -263,7 +266,7 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          <TimerCard timer={timer} settings={settings} />
+          <TimerCard timer={timer} settings={settings} isFocusActive={isFocusActive} />
         </motion.div>
 
         <AnimatePresence>
