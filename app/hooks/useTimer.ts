@@ -1,240 +1,96 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import type { TimerMode, TimerSettings } from "@/app/types";
-import { playRingRepeated, playClickSound, playBreakSound } from "@/app/data/ringtones";
+import { useCallback, useEffect, useReducer, useRef } from "react";
+import type { TimerMode, TimerSettings } from "../types";
+import { initialTimer, timerReducer } from "../lib/timer";
+import { playRingRepeated, playClickSound, playBreakSound } from "../data/ringtones";
 
-interface TimerState {
+export interface UseTimerResult {
   mode: TimerMode;
   timeRemaining: number;
   isRunning: boolean;
   completedSessions: number;
+  formattedTime: string;
+  progress: number;
+  cue: { sequence: number; kind: "start" | "pause" | "complete" | "skip" | "reset" | "switch" } | null;
+  start: () => void;
+  pause: () => void;
+  reset: () => void;
+  switchMode: (mode: TimerMode) => void;
+  skip: () => void;
 }
 
-function getDurationForMode(mode: TimerMode, settings: TimerSettings): number {
-  switch (mode) {
-    case "focus": return settings.focusDuration;
-    case "break": return settings.breakDuration;
-    case "longBreak": return settings.longBreakDuration;
-  }
-}
-
-function getNextMode(
-  currentMode: TimerMode,
-  completedSessions: number,
-  settings: TimerSettings,
-): TimerMode {
-  if (currentMode === "focus") {
-    const next = completedSessions + 1;
-    return next % settings.longBreakInterval === 0 ? "longBreak" : "break";
-  }
-  return "focus";
-}
-
-function getModeLabel(mode: TimerMode): string {
-  switch (mode) {
-    case "focus": return "Sesi Fokus sudah selesai!!";
-    case "break": return "Waktu istirahat sudah berakhir!";
-    case "longBreak": return "Istirahat panjang sudah berakhir!";
-  }
-}
-
-function getModeBody(mode: TimerMode): string {
-  switch (mode) {
-    case "focus": return "Kerja bagus! Waktunya rehat sejenak dulu,le";
-    case "break": return "Siap untuk fokus lagi,le?";
-    case "longBreak": return "Sudah terisi ulang? GASS LANJUT,le!";
-  }
-}
-
-function playRing(ringtoneId: string, repeat: number) {
-  try {
-    playRingRepeated(ringtoneId, repeat);
-  } catch (err) {
-    console.warn("Could not play ring:", err);
-  }
-}
-
-async function showNotification(mode: TimerMode) {
-  if (typeof window === "undefined" || !("Notification" in window)) return;
-  if (Notification.permission === "denied") return;
-  if (Notification.permission === "default") {
-    await Notification.requestPermission();
-  }
-  if (Notification.permission === "granted") {
-    new Notification(getModeLabel(mode), {
-      body: getModeBody(mode),
-      icon: "/favicon.ico",
-      silent: true,
-    });
-  }
+function notify(mode: TimerMode) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const title = mode === "focus" ? "Sesi fokus selesai" : "Waktu istirahat selesai";
+  new Notification(title, { body: mode === "focus" ? "Saatnya beristirahat." : "Siap fokus lagi?", icon: "/icon.svg", silent: true });
 }
 
 export function useTimer(
   settings: TimerSettings,
-  _tasks: unknown[],
-  _activeTaskId: string | null,
   onComplete: (mode: TimerMode, duration: number) => void,
   ringtoneId: string,
   ringtoneRepeat: number,
-) {
-  const [state, setState] = useState<TimerState>({
-    mode: "focus",
-    timeRemaining: settings.focusDuration * 60,
-    isRunning: false,
-    completedSessions: 0,
-  });
-
+): UseTimerResult {
+  const [state, dispatch] = useReducer(timerReducer, settings, initialTimer);
   const settingsRef = useRef(settings);
-  settingsRef.current = settings;
-
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
-
-  const ringtoneIdRef = useRef(ringtoneId);
-  ringtoneIdRef.current = ringtoneId;
-
-  const ringtoneRepeatRef = useRef(ringtoneRepeat);
-  ringtoneRepeatRef.current = ringtoneRepeat;
-
-  const completionFiredRef = useRef(false);
+  const ringtoneRef = useRef({ id: ringtoneId, repeat: ringtoneRepeat });
+  const handledCompletion = useRef(0);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+  useEffect(() => { ringtoneRef.current = { id: ringtoneId, repeat: ringtoneRepeat }; }, [ringtoneId, ringtoneRepeat]);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  const prevDurationsRef = useRef({
-    focusDuration: settings.focusDuration,
-    breakDuration: settings.breakDuration,
-    longBreakDuration: settings.longBreakDuration,
-  });
-
-  useEffect(() => {
-    const prev = prevDurationsRef.current;
-    const changed =
-      prev.focusDuration !== settings.focusDuration ||
-      prev.breakDuration !== settings.breakDuration ||
-      prev.longBreakDuration !== settings.longBreakDuration;
-
-    if (!changed) return;
-    prevDurationsRef.current = {
-      focusDuration: settings.focusDuration,
-      breakDuration: settings.breakDuration,
-      longBreakDuration: settings.longBreakDuration,
-    };
-
-    setState(prev => {
-      if (prev.isRunning) return prev;
-      return { ...prev, timeRemaining: getDurationForMode(prev.mode, settings) * 60 };
-    });
-  }, [settings.focusDuration, settings.breakDuration, settings.longBreakDuration, settings]);
+    dispatch({ type: "settings", settings });
+  }, [settings]);
 
   useEffect(() => {
     if (!state.isRunning) return;
-
-    const interval = setInterval(() => {
-      setState(prev => {
-        if (!prev.isRunning) return prev;
-
-        const next = prev.timeRemaining - 1;
-
-        if (next > 0) {
-          return { ...prev, timeRemaining: next };
-        }
-
-        const s = settingsRef.current;
-        const duration = getDurationForMode(prev.mode, s);
-        const completedMode = prev.mode;
-
-        if (!completionFiredRef.current) {
-          completionFiredRef.current = true;
-          setTimeout(() => {
-            onCompleteRef.current(completedMode, duration);
-            playRing(ringtoneIdRef.current, ringtoneRepeatRef.current);
-            showNotification(completedMode);
-            // Play break transition sound when entering break
-            if (completedMode === "focus") {
-              setTimeout(() => playBreakSound(), 500);
-            }
-            completionFiredRef.current = false;
-          }, 0);
-        }
-
-        const nextMode = getNextMode(prev.mode, prev.completedSessions, s);
-        const nextCompletedSessions =
-          prev.mode === "focus" ? prev.completedSessions + 1 : prev.completedSessions;
-
-        return {
-          mode: nextMode,
-          timeRemaining: getDurationForMode(nextMode, s) * 60,
-          isRunning: false,
-          completedSessions: nextCompletedSessions,
-        };
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
+    const tick = () => dispatch({ type: "tick", now: Date.now(), settings: settingsRef.current });
+    const interval = window.setInterval(tick, 1000);
+    document.addEventListener("visibilitychange", tick);
+    window.addEventListener("focus", tick);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", tick);
+      window.removeEventListener("focus", tick);
+    };
   }, [state.isRunning]);
+
+  useEffect(() => {
+    const completion = state.completion;
+    if (!completion || completion.sequence === handledCompletion.current) return;
+    handledCompletion.current = completion.sequence;
+    onCompleteRef.current(completion.mode, completion.duration);
+    playRingRepeated(ringtoneRef.current.id, ringtoneRef.current.repeat);
+    notify(completion.mode);
+    if (completion.mode === "focus") window.setTimeout(playBreakSound, 500);
+  }, [state.completion]);
 
   const start = useCallback(() => {
     playClickSound();
-    setState(prev => ({ ...prev, isRunning: true }));
+    if ("Notification" in window && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+    dispatch({ type: "start", now: Date.now() });
   }, []);
-
   const pause = useCallback(() => {
     playClickSound();
-    setState(prev => ({ ...prev, isRunning: false }));
+    dispatch({ type: "pause", now: Date.now(), settings: settingsRef.current });
   }, []);
+  const reset = useCallback(() => dispatch({ type: "reset", settings: settingsRef.current }), []);
+  const switchMode = useCallback((mode: TimerMode) => dispatch({ type: "switch", mode, settings: settingsRef.current }), []);
+  const skip = useCallback(() => dispatch({ type: "skip", settings: settingsRef.current }), []);
 
-  const reset = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      timeRemaining: getDurationForMode(prev.mode, settingsRef.current) * 60,
-      isRunning: false,
-    }));
-  }, []);
-
-  const switchMode = useCallback((mode: TimerMode) => {
-    setState(prev => ({
-      ...prev,
-      mode,
-      timeRemaining: getDurationForMode(mode, settingsRef.current) * 60,
-      isRunning: false,
-    }));
-  }, []);
-
-  const skip = useCallback(() => {
-    setState(prev => {
-      const s = settingsRef.current;
-      const nextMode = getNextMode(prev.mode, prev.completedSessions, s);
-      const nextCompletedSessions =
-        prev.mode === "focus" ? prev.completedSessions + 1 : prev.completedSessions;
-      return {
-        mode: nextMode,
-        timeRemaining: getDurationForMode(nextMode, s) * 60,
-        isRunning: false,
-        completedSessions: nextCompletedSessions,
-      };
-    });
-  }, []);
-
-  const totalSeconds = getDurationForMode(state.mode, settings) * 60;
   const minutes = Math.floor(state.timeRemaining / 60);
   const seconds = state.timeRemaining % 60;
-  const formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  const progress = ((totalSeconds - state.timeRemaining) / totalSeconds) * 100;
-
   return {
     mode: state.mode,
     timeRemaining: state.timeRemaining,
     isRunning: state.isRunning,
     completedSessions: state.completedSessions,
-    formattedTime,
-    progress,
-    start,
-    pause,
-    reset,
-    switchMode,
-    skip,
+    formattedTime: `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`,
+    progress: 100 * (1 - state.timeRemaining / (state.sessionDuration * 60)),
+    cue: state.cue,
+    start, pause, reset, switchMode, skip,
   };
 }

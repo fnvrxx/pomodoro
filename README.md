@@ -1,27 +1,23 @@
 # Pomodoro
 
-Aplikasi timer pomodoro dengan task management, music player, dan progress tracking.
+Aplikasi timer fokus dengan tugas, musik YouTube, dan catatan progres yang tersimpan di browser.
 
----
+## Menjalankan
 
-## Changelog
+Gunakan Node.js 20.9 atau lebih baru.
 
-### v1.1 — Bug Fixes
+```bash
+npm ci
+npm run dev
+```
 
-- [x] Flash/render glitch saat klik "Clear All Task"
-- [x] Mode focus berubah ke tampilan hitam-putih
-- [x] Activity Summary menampilkan histogram harian (jam fokus per hari)
-- [x] Catatan task tidak muncul saat edit task yang sudah ada
-- [x] Hilangkan flash/fade setiap detik pada timer
-- [x] Circle progress tidak kembali penuh saat sesi baru dimulai
+Buka `http://localhost:3000`. Untuk memeriksa perubahan, jalankan `npm test`, `npm run lint`, `npm run typecheck`, dan `npm run build`.
 
----
+## v2.0
 
-## Roadmap
+- Tema terang dengan aksen jingga, dinosaurus, dan love penanda sesi fokus dalam satu siklus. Animasi mengikuti pengaturan pengurangan gerak pada perangkat.
+- Timer menggunakan waktu akhir sesi sehingga tetap akurat saat tab berada di latar belakang.
+- Panel progres dan musik dimuat saat dibuka. Kalender aktivitas satu tahun dan histogram yang bisa diketuk menampilkan durasi fokus dari data tersimpan.
+- Fitur tugas, playlist, ringtone, dan pintasan keyboard tetap tersedia. Data lokal tetap memakai format v1.
 
-### v2.0 — Coming Soon
-
-- [ ] Pixel art theme (hijau, biru, pink)
-- [ ] Elemen cute untuk tema pink
-- [ ] Redesign UI — lebih simpel dan bersih
-- [ ] Refactor & peningkatan performa
+Pilihan visual dicatat di [DESIGN.md](DESIGN.md). Alur kode untuk pengembangan berikutnya dijelaskan di [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

@@ -1,132 +1,25 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Quote, Sparkles, RefreshCw } from 'lucide-react';
-import { getRandomQuoteExcluding, type Quote as QuoteType } from '@/app/data/motivationalQuotes';
+import { useState } from "react";
+import { RotateCcw } from "lucide-react";
+import { getRandomQuoteExcluding } from "../data/motivationalQuotes";
 
-interface MotivationalQuoteProps {
-  show: boolean;
-}
-
-export function MotivationalQuote({ show }: MotivationalQuoteProps) {
-  const [currentQuote, setCurrentQuote] = useState<QuoteType | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  useEffect(() => {
-    if (show && !currentQuote) {
-      setCurrentQuote(getRandomQuoteExcluding(null));
-    }
-  }, [show, currentQuote]);
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setCurrentQuote(prev => getRandomQuoteExcluding(prev));
-      setIsRefreshing(false);
-    }, 300);
-  };
+export function MotivationalQuote({ show, completed }: { show: boolean; completed: boolean }) {
+  const [quote, setQuote] = useState(() => getRandomQuoteExcluding(null));
+  if (!show) return null;
 
   return (
-    <AnimatePresence>
-      {show && currentQuote && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="relative rounded-2xl p-5 mt-4 overflow-hidden"
-          style={{
-            background: "linear-gradient(to bottom right, var(--pomo-primary), var(--pomo-primary-dark))",
-          }}
-        >
-          {/* Decorative elements */}
-          <div className="absolute top-2 right-2 opacity-20">
-            <Sparkles className="w-16 h-16 text-white" />
+    <aside className="surface motivation-panel p-5 sm:p-6" aria-label="Motivasi">
+      {completed ? (
+        <>
+          <p className="font-bold mb-2">Semua tugas selesai. Bagus!</p>
+          <blockquote className="font-semibold text-base leading-relaxed">“{quote.text}”</blockquote>
+          <div className="flex justify-between items-center gap-3 mt-2 text-sm">
+            <cite className="not-italic">{quote.author}</cite>
+            <button type="button" className="header-action !min-h-9" onClick={() => setQuote(previous => getRandomQuoteExcluding(previous))} aria-label="Kutipan lain">
+              <RotateCcw size={15} aria-hidden="true" />
+            </button>
           </div>
-          <div className="absolute -bottom-4 -left-4 opacity-10">
-            <Quote className="w-24 h-24 text-white" />
-          </div>
-
-          {/* Confetti-like decorations */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(6)].map((_, i) => (
-              <motion.div
-                key={`confetti-${i}`}
-                className="absolute w-2 h-2 rounded-full bg-white/30"
-                style={{ left: `${15 + i * 15}%`, top: '20%' }}
-                initial={{ y: 0, opacity: 0.3, scale: 1 }}
-                animate={{ y: -20, opacity: 0.7, scale: 1.1 }}
-                transition={{ duration: 0.6, delay: i * 0.1, ease: 'easeOut' }}
-              />
-            ))}
-          </div>
-
-          {/* Content */}
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <motion.div
-                  initial={{ rotate: 0 }}
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Sparkles className="w-5 h-5" style={{ color: "var(--pomo-accent)" }} />
-                </motion.div>
-                <span className="text-sm font-bold text-white/90">Congratulations!</span>
-              </div>
-              <motion.button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-              >
-                <motion.div
-                  animate={{ rotate: isRefreshing ? 360 : 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <RefreshCw className="w-4 h-4 text-white/70" />
-                </motion.div>
-              </motion.button>
-            </div>
-
-            <AnimatePresence mode="wait">
-              <motion.blockquote
-                key={currentQuote.text}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="text-center py-2"
-              >
-                <Quote className="w-6 h-6 text-white/30 mx-auto mb-2" />
-                <p className="text-white text-lg font-medium leading-relaxed italic">
-                  &ldquo;{currentQuote.text}&rdquo;
-                </p>
-                <footer className="mt-3">
-                  <cite className="text-white/70 text-sm not-italic">
-                    — {currentQuote.author}
-                  </cite>
-                </footer>
-              </motion.blockquote>
-            </AnimatePresence>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="text-center text-white/50 text-xs mt-4"
-            >
-              Tap the refresh icon for another quote
-            </motion.p>
-          </div>
-
-          {/* Bottom gradient line */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 opacity-70"
-               style={{
-                 background: `linear-gradient(to right, transparent, var(--pomo-accent), transparent)`,
-               }} />
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </>
+      ) : <p className="font-semibold text-base leading-relaxed">Satu sesi dulu. Sisanya menyusul.</p>}
+    </aside>
   );
 }

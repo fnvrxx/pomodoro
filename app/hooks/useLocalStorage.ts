@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Task, TimerSettings, UserProgress, CustomPlaylist } from '@/app/types';
+import { DEFAULT_SETTINGS, DEFAULT_PROGRESS } from '@/app/types';
 
 /**
  * Custom hook for persisting state to localStorage.
@@ -13,32 +14,35 @@ export function useLocalStorage<T>(
   initialValue: T,
 ): [T, (value: T | ((prev: T) => T)) => void] {
   const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [hydrated, setHydrated] = useState(false);
 
   // After mount, hydrate from localStorage (client-only)
   useEffect(() => {
     try {
       const item = window.localStorage.getItem(key);
       if (item !== null) {
+        // Browser storage is available only after the first client render.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setStoredValue(JSON.parse(item));
       }
     } catch (error) {
       console.warn(`useLocalStorage: error reading "${key}"`, error);
     }
+    setHydrated(true);
   }, [key]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(storedValue));
+    } catch (error) {
+      console.warn(`useLocalStorage: error writing "${key}"`, error);
+    }
+  }, [hydrated, key, storedValue]);
+
   const setValue = useCallback(
-    (value: T | ((prev: T) => T)) => {
-      try {
-        setStoredValue(prev => {
-          const next = value instanceof Function ? value(prev) : value;
-          window.localStorage.setItem(key, JSON.stringify(next));
-          return next;
-        });
-      } catch (error) {
-        console.warn(`useLocalStorage: error writing "${key}"`, error);
-      }
-    },
-    [key],
+    (value: T | ((prev: T) => T)) => setStoredValue(value),
+    [],
   );
 
   return [storedValue, setValue];
@@ -49,19 +53,8 @@ export function useLocalStorage<T>(
  */
 export function useAppPersistence() {
   const [tasks, setTasks] = useLocalStorage<Task[]>('pomodoro-tasks', []);
-  const [settings, setSettings] = useLocalStorage<TimerSettings>('pomodoro-settings', {
-    focusDuration: 25,
-    breakDuration: 5,
-    longBreakDuration: 15,
-    longBreakInterval: 4,
-  });
-  const [progress, setProgress] = useLocalStorage<UserProgress>('pomodoro-progress', {
-    totalFocusTime: 0,
-    totalPomodorosCompleted: 0,
-    currentStreak: 0,
-    lastActiveDate: null,
-    dailyStats: [],
-  });
+  const [settings, setSettings] = useLocalStorage<TimerSettings>('pomodoro-settings', DEFAULT_SETTINGS);
+  const [progress, setProgress] = useLocalStorage<UserProgress>('pomodoro-progress', DEFAULT_PROGRESS);
   const [activeTaskId, setActiveTaskId] = useLocalStorage<string | null>(
     'pomodoro-active-task',
     null,
@@ -78,11 +71,6 @@ export function useAppPersistence() {
     'pomodoro-ringtone-repeat',
     1,
   );
-  const [theme, setTheme] = useLocalStorage<string>(
-    'pomodoro-theme',
-    'sage',
-  );
-
   return {
     tasks, setTasks,
     settings, setSettings,
@@ -91,6 +79,5 @@ export function useAppPersistence() {
     customPlaylists, setCustomPlaylists,
     ringtoneId, setRingtoneId,
     ringtoneRepeat, setRingtoneRepeat,
-    theme, setTheme,
   };
 }
