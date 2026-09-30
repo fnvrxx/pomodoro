@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { recordFocusSession } from '../app/lib/progress.ts';
+import { messageForSession } from '../app/data/motivationalQuotes.ts';
 import { focusActivityData, focusActivityMonths, focusChartData, focusIntensity } from '../app/lib/stats.ts';
 
 const empty = { totalFocusTime: 0, totalPomodorosCompleted: 0, currentStreak: 0, lastActiveDate: null, dailyStats: [] };
@@ -13,6 +14,12 @@ test('focus sessions update totals and the same day exactly once per call', () =
   assert.equal(second.currentStreak, 1);
   assert.deepEqual(second.dailyStats, [{ date: '2026-09-29', focusTime: 50, pomodorosCompleted: 2 }]);
   assert.deepEqual(empty.dailyStats, []);
+});
+
+test('motivation changes after each completed focus session and wraps safely', () => {
+  assert.equal(messageForSession(0), 'Satu sesi dulu. Sisanya menyusul.');
+  assert.notEqual(messageForSession(1), messageForSession(2));
+  assert.equal(messageForSession(1), messageForSession(5));
 });
 
 test('streak increments on consecutive days and resets after a gap', () => {

@@ -71,6 +71,10 @@ export function useAppPersistence() {
     'pomodoro-ringtone-repeat',
     1,
   );
+  const [awayRemindersEnabled, setAwayRemindersEnabled] = useLocalStorage<boolean>(
+    'pomodoro-away-reminders',
+    true,
+  );
   return {
     tasks, setTasks,
     settings, setSettings,
@@ -79,5 +83,6 @@ export function useAppPersistence() {
     customPlaylists, setCustomPlaylists,
     ringtoneId, setRingtoneId,
     ringtoneRepeat, setRingtoneRepeat,
+    awayRemindersEnabled, setAwayRemindersEnabled,
   };
 }

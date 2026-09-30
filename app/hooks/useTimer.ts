@@ -2,6 +2,8 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { TimerMode, TimerSettings } from "../types";
 import { initialTimer, timerReducer } from "../lib/timer";
 import { playRingRepeated, playClickSound, playBreakSound } from "../data/ringtones";
+import { notifyUser } from "../services/notifications";
+import { CUSTOM_RINGTONE_ID } from "../services/customRingtone";
 
 export interface UseTimerResult {
   mode: TimerMode;
@@ -19,9 +21,8 @@ export interface UseTimerResult {
 }
 
 function notify(mode: TimerMode) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
   const title = mode === "focus" ? "Sesi fokus selesai" : "Waktu istirahat selesai";
-  new Notification(title, { body: mode === "focus" ? "Saatnya beristirahat." : "Siap fokus lagi?", icon: "/icon.svg", silent: true });
+  void notifyUser(title, { body: mode === "focus" ? "Saatnya beristirahat." : "Siap fokus lagi?", icon: "/icon.svg", tag: "pomodoro-session", silent: true });
 }
 
 export function useTimer(
@@ -29,15 +30,16 @@ export function useTimer(
   onComplete: (mode: TimerMode, duration: number) => void,
   ringtoneId: string,
   ringtoneRepeat: number,
+  customRingtoneBuffer?: AudioBuffer,
 ): UseTimerResult {
   const [state, dispatch] = useReducer(timerReducer, settings, initialTimer);
   const settingsRef = useRef(settings);
   const onCompleteRef = useRef(onComplete);
-  const ringtoneRef = useRef({ id: ringtoneId, repeat: ringtoneRepeat });
+  const ringtoneRef = useRef({ id: ringtoneId, repeat: ringtoneRepeat, buffer: customRingtoneBuffer });
   const handledCompletion = useRef(0);
   useEffect(() => { settingsRef.current = settings; }, [settings]);
   useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
-  useEffect(() => { ringtoneRef.current = { id: ringtoneId, repeat: ringtoneRepeat }; }, [ringtoneId, ringtoneRepeat]);
+  useEffect(() => { ringtoneRef.current = { id: ringtoneId, repeat: ringtoneRepeat, buffer: customRingtoneBuffer }; }, [ringtoneId, ringtoneRepeat, customRingtoneBuffer]);
 
   useEffect(() => {
     dispatch({ type: "settings", settings });
@@ -61,15 +63,15 @@ export function useTimer(
     if (!completion || completion.sequence === handledCompletion.current) return;
     handledCompletion.current = completion.sequence;
     onCompleteRef.current(completion.mode, completion.duration);
-    playRingRepeated(ringtoneRef.current.id, ringtoneRef.current.repeat);
+    playRingRepeated(ringtoneRef.current.id, ringtoneRef.current.repeat, ringtoneRef.current.buffer);
     notify(completion.mode);
-    if (completion.mode === "focus") window.setTimeout(playBreakSound, 500);
+    if (completion.mode === "focus" && ringtoneRef.current.id !== CUSTOM_RINGTONE_ID && ringtoneRef.current.id !== "none") window.setTimeout(playBreakSound, 500);
   }, [state.completion]);
 
   const start = useCallback(() => {
     playClickSound();
     if ("Notification" in window && Notification.permission === "default") {
-      void Notification.requestPermission();
+      void Notification.requestPermission().catch(() => undefined);
     }
     dispatch({ type: "start", now: Date.now() });
   }, []);

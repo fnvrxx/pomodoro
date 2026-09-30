@@ -1,4 +1,5 @@
 "use client";
+import { useCustomRingtone } from "./hooks/useCustomRingtone";
 
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
@@ -11,6 +12,9 @@ import { KeyboardShortcutsHint } from "./components/KeyboardShortcutsHint";
 import { MotivationalQuote } from "./components/MotivationalQuote";
 import { useAppPersistence } from "./hooks/useLocalStorage";
 import { useTimer } from "./hooks/useTimer";
+import { useAwayReminder } from "./hooks/useAwayReminder";
+import { useFocusCelebration } from "./hooks/useFocusCelebration";
+import { FocusCelebrationDialog } from "./components/FocusCelebrationDialog";
 import { recordFocusSession } from "./lib/progress";
 import type { Task, TimerMode, TimerSettings, CustomPlaylist } from "./types";
 
@@ -27,14 +31,18 @@ export default function Home() {
     tasks, setTasks, settings, setSettings, progress, setProgress,
     activeTaskId, setActiveTaskId, customPlaylists, setCustomPlaylists,
     ringtoneId, setRingtoneId, ringtoneRepeat, setRingtoneRepeat,
+    awayRemindersEnabled, setAwayRemindersEnabled,
   } = useAppPersistence();
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [musicOpen, setMusicOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const { session: celebration, celebrate, dismiss: dismissCelebration } = useFocusCelebration();
+  const celebrationOpen = celebration !== null && !taskModalOpen && !progressOpen && !settingsOpen;
 
   const onTimerComplete = useCallback((mode: TimerMode, duration: number) => {
+    celebrate(mode, duration);
     if (mode !== "focus") return;
     setProgress(previous => recordFocusSession(previous, duration, new Date()));
     if (activeTaskId) {
@@ -44,9 +52,11 @@ export default function Home() {
         return { ...task, actualPomodoros, completed: task.completed || actualPomodoros >= task.estimatedPomodoros };
       }));
     }
-  }, [activeTaskId, setProgress, setTasks]);
+  }, [activeTaskId, setProgress, setTasks, celebrate]);
 
-  const timer = useTimer(settings, onTimerComplete, ringtoneId, ringtoneRepeat);
+  const customRingtone = useCustomRingtone();
+  const timer = useTimer(settings, onTimerComplete, ringtoneId, ringtoneRepeat, customRingtone.audio?.buffer);
+  useAwayReminder(awayRemindersEnabled);
   const { start, pause, reset, skip } = timer;
 
   const closeTaskModal = useCallback(() => {
@@ -98,7 +108,7 @@ export default function Home() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      if (taskModalOpen || progressOpen || settingsOpen || target.closest("button, a, input, textarea, select, [contenteditable='true']")) return;
+      if (taskModalOpen || progressOpen || settingsOpen || celebrationOpen || target.closest("button, a, input, textarea, select, [contenteditable='true']")) return;
       if (event.code === "Space") {
         event.preventDefault();
         if (timer.isRunning) pause();
@@ -109,7 +119,7 @@ export default function Home() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [start, pause, reset, skip, openNewTask, timer.isRunning, taskModalOpen, progressOpen, settingsOpen]);
+  }, [start, pause, reset, skip, openNewTask, timer.isRunning, taskModalOpen, progressOpen, settingsOpen, celebrationOpen]);
 
   useEffect(() => {
     const label = timer.mode === "focus" ? "Fokus" : "Istirahat";
@@ -144,7 +154,11 @@ export default function Home() {
           )}
         </div>
         <div className="side-column focus-grayscale">
-          <MotivationalQuote show={tasks.length > 0} completed={tasks.every(task => task.completed)} />
+          <MotivationalQuote
+            show={tasks.length > 0 || progress.totalPomodorosCompleted > 0}
+            completed={tasks.length > 0 && tasks.every(task => task.completed)}
+            completedSessions={progress.totalPomodorosCompleted}
+          />
           <TaskList
             tasks={tasks} activeTaskId={activeTaskId} onAddTask={openNewTask}
             onEditTask={openEditTask} onDeleteTask={deleteTask} onToggleComplete={toggleTask}
@@ -159,8 +173,13 @@ export default function Home() {
         isOpen onClose={() => setSettingsOpen(false)} settings={settings} onSave={saveSettings}
         ringtoneId={ringtoneId} onRingtoneChange={setRingtoneId}
         ringtoneRepeat={ringtoneRepeat} onRingtoneRepeatChange={setRingtoneRepeat}
+        customRingtone={customRingtone}
+        awayRemindersEnabled={awayRemindersEnabled} onAwayRemindersChange={setAwayRemindersEnabled}
       />}
       <KeyboardShortcutsHint />
+      {celebrationOpen && celebration && <FocusCelebrationDialog
+        session={celebration} completedSessions={progress.totalPomodorosCompleted} onClose={dismissCelebration}
+      />}
     </div>
   );
 }

@@ -1,13 +1,20 @@
-/**
- * Motivational Quotes Collection
- * 
- * A curated list of quotes to celebrate task completion and encourage consistency.
- * These are displayed when all tasks are completed.
- */
-
 export interface Quote {
   text: string;
   author: string;
+}
+
+const sessionMessages = [
+  "Sesi selesai. Nikmati jedanya.",
+  "Satu sesi lagi tercatat.",
+  "Istirahat dulu, lalu lanjut.",
+  "Bagus. Fokusmu hari ini bertambah.",
+];
+
+export function messageForSession(completedSessions: number): string {
+  const count = Math.max(0, Math.floor(completedSessions));
+  return count === 0
+    ? "Satu sesi dulu. Sisanya menyusul."
+    : sessionMessages[(count - 1) % sessionMessages.length];
 }
 
 export const motivationalQuotes: Quote[] = [
@@ -92,27 +99,3 @@ export const motivationalQuotes: Quote[] = [
     author: "Franz Kafka",
   },
 ];
-
-/**
- * Get a random quote from the collection
- */
-export function getRandomQuote(): Quote {
-  const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
-  return motivationalQuotes[randomIndex];
-}
-
-/**
- * Get a random quote that's different from the last one
- */
-export function getRandomQuoteExcluding(excludeQuote: Quote | null): Quote {
-  if (!excludeQuote) {
-    return getRandomQuote();
-  }
-  
-  let newQuote: Quote;
-  do {
-    newQuote = getRandomQuote();
-  } while (newQuote.text === excludeQuote.text);
-  
-  return newQuote;
-}

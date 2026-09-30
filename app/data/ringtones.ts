@@ -1,7 +1,4 @@
-/**
- * Ringtone definitions — only developers can add new ringtones here.
- * Users can only select from this list and set repeat count in Settings.
- */
+import { CUSTOM_RINGTONE_ID } from "../services/customRingtone";
 
 export interface Ringtone {
   id: string;
@@ -31,15 +28,18 @@ export function stopAllRingtones(): void {
   // Cancel pending repeat timeouts
   pendingTimeouts.forEach(t => clearTimeout(t));
   pendingTimeouts = [];
-  // Close active audio context
+  closeActiveContext();
+}
+
+function closeActiveContext() {
   if (activeCtx) {
-    try { activeCtx.close(); } catch { /* ignore */ }
+    void activeCtx.close().catch(() => undefined);
     activeCtx = null;
   }
 }
 
 function createTrackedCtx(): AudioContext | null {
-  stopAllRingtones();
+  closeActiveContext();
   const ctx = getAudioCtx();
   activeCtx = ctx;
   return ctx;
@@ -158,8 +158,21 @@ export function getRingtoneById(id: string): Ringtone {
 /**
  * Play a ringtone N times, spacing each repeat after the previous one finishes.
  */
-export function playRingRepeated(id: string, times: number): void {
+export function playRingRepeated(id: string, times: number, customBuffer?: AudioBuffer): void {
   stopAllRingtones();
+  if (times <= 0) return;
+  if (id === CUSTOM_RINGTONE_ID && customBuffer) {
+    const ctx = createTrackedCtx();
+    if (!ctx) return;
+    for (let i = 0; i < times; i++) {
+      const source = ctx.createBufferSource();
+      source.buffer = customBuffer;
+      source.connect(ctx.destination);
+      source.start(ctx.currentTime + i * (customBuffer.duration + .3));
+      if (i === times - 1) source.onended = () => { if (activeCtx === ctx) closeActiveContext(); };
+    }
+    return;
+  }
   const ringtone = getRingtoneById(id);
   if (ringtone.id === "none" || times <= 0) return;
 
